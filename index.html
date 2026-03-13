@@ -152,6 +152,7 @@ label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.78re
 .position-slot.sub-incompat:active{transform:scale(.97);opacity:1}
 @keyframes subPulse{0%,100%{box-shadow:0 0 0 2px rgba(232,160,32,.35),0 0 16px rgba(232,160,32,.15)}50%{box-shadow:0 0 0 3px rgba(232,160,32,.6),0 0 24px rgba(232,160,32,.3)}}
 .sub-since{font-size:0.6rem;color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;margin-top:3px;letter-spacing:.5px}
+.sub-since-big{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:1px;margin-top:4px;line-height:1}
 /* BENCH */
 .bench-player{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .2s;touch-action:manipulation}
 .bench-player:active{transform:scale(.98)}
@@ -962,7 +963,7 @@ function renderBench() {
   const positions = getPositions(match);
   const onFieldPlayers = new Set(positions.map(p => match.lineup[p.num]).filter(Boolean));
 
-  // Build bench list: players not on field, sorted by tournament playtime desc
+  // Bench list: players NOT on field, sorted by tournament playtime ASCENDING (least played first)
   const benchPlayers = state.players
     .filter(p => !onFieldPlayers.has(p.name))
     .map(p => ({
@@ -971,19 +972,19 @@ function renderBench() {
       tTime: state.tournamentPlaytime[p.name] || 0,
       mTime: (match.playtime[p.name] || 0) + getLiveExtra(p.name),
     }))
-    .sort((a, b) => b.tTime - a.tTime);
+    .sort((a, b) => a.tTime - b.tTime); // ascending: least played first
 
   let html = '';
 
   // Instruction banner
   if (benchSelectedPlayer) {
     html += `<div class="sub-instruction">
-      ✅ <strong>${benchSelectedPlayer}</strong> sélectionné — touchez un poste en surbrillance pour effectuer le changement
+      ✅ <strong>${benchSelectedPlayer}</strong> sélectionné — touchez un poste pour effectuer le changement
     </div>
     <button class="sub-cancel-btn" onclick="cancelSubstitution()">✕ Annuler la sélection</button>`;
   } else {
     html += `<div class="sub-instruction" style="color:var(--muted);background:transparent;border-color:var(--border)">
-      Touchez un remplaçant pour voir ses postes disponibles
+      Touchez un remplaçant pour voir les postes disponibles
     </div>`;
   }
 
@@ -993,13 +994,15 @@ function renderBench() {
     html += benchPlayers.map((p, i) => {
       const isSelected = benchSelectedPlayer === p.name;
       const rank = i + 1;
+      // Highlight top 3 least-played (priority for entering)
+      const isTop = rank <= 3;
       return `<div class="bench-player ${isSelected ? 'selected' : ''}" onclick="selectBenchPlayer('${escapeJs(p.name)}')">
-        <div class="bench-rank ${rank <= 3 ? 'top' : ''}">${rank}</div>
+        <div class="bench-rank ${isTop ? 'top' : ''}">${rank}</div>
         <div style="flex:1;min-width:0">
           <div class="bench-player-name">${p.name}</div>
           <div class="bench-player-meta">${p.positions.join(', ') || '—'}</div>
         </div>
-        <div class="bench-time-val" style="text-align:right">
+        <div style="text-align:right">
           <div class="bench-time-val">${fmtTime(p.tTime)}</div>
           <div class="bench-time-label">tournoi</div>
           <div style="font-size:.65rem;color:var(--muted)">${fmtTime(p.mTime)} match</div>
@@ -1008,12 +1011,15 @@ function renderBench() {
     }).join('');
   }
 
-  // If a player is selected, show field overview with highlighted positions below
+  // If a player is selected, show field with all positions clickable
   if (benchSelectedPlayer) {
     const pd = state.players.find(p => p.name === benchSelectedPlayer);
     const compatTypes = pd ? pd.positions : [];
 
-    html += `<div style="margin-top:8px"><div class="card-title" style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">🏉 Postes compatibles — taper pour substituer</div>`;
+    html += `<div style="margin-top:12px">
+      <div class="card-title" style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">
+        🏉 Tous les postes — taper pour substituer
+      </div>`;
 
     const cats = {};
     positions.forEach(p => { if (!cats[p.cat]) cats[p.cat]=[]; cats[p.cat].push(p); });
@@ -1023,23 +1029,24 @@ function renderBench() {
       pos.forEach(p => {
         const player = match.lineup[p.num];
         const isCompat = compatTypes.includes(p.type);
-        const savedTime = player ? (match.playtime[player] || 0) : 0;
-        const liveTime = player ? getLiveExtra(player) : 0;
-        const totalSecs = savedTime + liveTime;
         const changeTs = match.lastChangeTs[p.num];
         const sinceSecs = changeTs ? Math.round((Date.now() - changeTs) / 1000) : null;
 
-        const slotClass = isCompat ? 'sub-target' : (player ? 'filled' : '');
-        const onclick = isCompat ? `doSubstitution(${p.num})` : `openPicker(${p.num})`;
+        // Compatible: gold pulse. Incompatible: grey dashed, still clickable
+        const slotClass = isCompat
+          ? 'sub-target'
+          : (player ? 'filled sub-incompat' : 'sub-incompat');
 
-        html += `<div class="position-slot ${slotClass}" onclick="${onclick}">
+        html += `<div class="position-slot ${slotClass}" onclick="doSubstitution(${p.num})">
           <div class="pos-number">${p.num}</div>
           <div class="pos-name">${p.name}</div>
           ${player
-            ? `<div class="pos-player" style="font-size:.78rem">${player}</div>
-               ${isCompat && sinceSecs !== null ? `<div class="sub-since">⏱ ${fmtTime(sinceSecs)}</div>` : ''}
-               ${!isCompat && totalSecs > 0 ? `<div class="pos-time-label">${fmtTime(totalSecs)}</div>` : ''}`
-            : `<div class="pos-empty">${isCompat ? 'Libre ✓' : 'Vide'}</div>`
+            ? `<div class="pos-player" style="font-size:.78rem">${player}</div>`
+            : `<div class="pos-empty">${isCompat ? 'Libre ✓' : 'Libre'}</div>`
+          }
+          ${sinceSecs !== null
+            ? `<div class="sub-since-big" style="color:${isCompat ? 'var(--accent)' : 'var(--muted)'}">⏱ ${fmtTime(sinceSecs)}</div>`
+            : (player ? `<div class="sub-since-big" style="color:var(--muted)">nouveau</div>` : '')
           }
         </div>`;
       });
