@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Coach Rugby</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a1628;
+    --bg2: #0f1f3d;
+    --bg3: #162847;
+    --card: #1a2f52;
+    --border: #243d66;
+    --accent: #e8a020;
+    --accent2: #f0c060;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --text: #d4e3f7;
+    --muted: #6b8ab0;
+    --white: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+    border-bottom: 2px solid var(--accent);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white);
+  }
+  header h1 span { color: var(--accent); }
+
+  .nav-tabs {
+    display: flex;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 10px 12px;
+    text-align: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    white-space: nowrap;
+  }
+  .nav-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; padding: 16px; }
+  .view.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    touch-action: manipulation;
+  }
+  .btn-primary { background: var(--accent); color: #0a1628; }
+  .btn-primary:active { background: var(--accent2); transform: scale(0.97); }
+  .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .btn-outline:active { background: rgba(232,160,32,0.1); }
+  .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-green { background: var(--green); color: white; }
+  .btn-full { width: 100%; }
+  .btn:disabled { opacity: 0.4; pointer-events: none; }
+
+  /* ── INPUTS ── */
+  input, select, textarea {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* ── GSHEET CONFIG ── */
+  .gsheet-info {
+    background: rgba(232,160,32,0.08);
+    border: 1px solid rgba(232,160,32,0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+  .gsheet-info code {
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    color: var(--accent2);
+  }
+
+  /* ── PLAYER BADGES ── */
+  .player-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    margin: 3px;
+  }
+  .badge-count {
+    background: var(--accent);
+    color: #0a1628;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  /* ── TERRAIN / FIELD GRID ── */
+  .field-section {
+    margin-bottom: 16px;
+  }
+  .section-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .position-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .position-slot {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .position-slot:active { transform: scale(0.97); }
+  .position-slot.filled {
+    border-color: var(--green);
+    background: rgba(46,204,113,0.06);
+  }
+  .position-slot.selected {
+    border-color: var(--accent);
+    background: rgba(232,160,32,0.1);
+    box-shadow: 0 0 0 2px rgba(232,160,32,0.2);
+  }
+  .pos-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 1.5rem;
+    color: var(--border);
+    line-height: 1;
+  }
+  .position-slot.filled .pos-number { color: var(--green); }
+  .position-slot.selected .pos-number { color: var(--accent); }
+  .pos-name {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 2px 0;
+  }
+  .pos-player {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--white);
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pos-empty {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .pos-entries {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: var(--accent);
+    color: #0a1628;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+
+  /* ── PLAYER PICKER ── */
+  .picker-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: flex-end;
+  }
+  .picker-overlay.open { display: flex; }
+  .picker-sheet {
+    background: var(--bg2);
+    border-radius: 20px 20px 0 0;
+    border-top: 2px solid var(--accent);
+    padding: 16px;
+    width: 100%;
+    max-height: 75vh;
+    overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } }
+  .picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .picker-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .close-btn {
+    background: var(--border);
+    border: none;
+    color: var(--text);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .player-list { list-style: none; }
+  .player-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.1s;
+  }
+  .player-item:active { background: var(--bg3); }
+  .player-item-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .player-item-meta { font-size: 0.75rem; color: var(--muted); }
+  .player-item-entries {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .player-item.suggested { background: rgba(232,160,32,0.06); }
+  .suggested-tag {
+    font-size: 0.65rem;
+    background: var(--accent);
+    color: #0a1628;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+  .clear-pos-btn {
+    margin-top: 8px;
+    background: rgba(231,76,60,0.1);
+    border: 1px solid var(--red);
+    color: var(--red);
+    border-radius: 8px;
+    padding: 10px;
+    width: 100%;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  /* ── STATS TABLE ── */
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .stats-table th {
+    text-align: left;
+    padding: 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .stats-table td { padding: 8px; border-bottom: 1px solid rgba(36,61,102,0.5); }
+  .stats-table tr:last-child td { border-bottom: none; }
+  .stat-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 3px;
+    overflow: hidden;
+  }
+  .stat-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+  /* ── MATCH LIST ── */
+  .match-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .match-item:active { border-color: var(--accent); }
+  .match-item.current { border-color: var(--accent); }
+  .match-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .match-info { font-size: 0.75rem; color: var(--muted); }
+  .match-badge {
+    font-size: 0.65rem;
+    background: var(--accent);
+    color: #0a1628;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-weight: 700;
+  }
+
+  /* ── MISC ── */
+  .flex { display: flex; gap: 8px; }
+  .flex-1 { flex: 1; }
+  .text-center { text-align: center; }
+  .text-muted { color: var(--muted); font-size: 0.85rem; }
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state p { line-height: 1.5; }
+  .pill {
+    display: inline-block;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin: 2px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(36,61,102,0.4);
+    font-size: 0.85rem;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--accent);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏉 <span>Coach</span> Rugby</h1>
+  <div id="tournamentName" style="font-size:0.8rem;color:var(--muted)"></div>
+</header>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="showView('setup')">⚙️ Config</button>
+  <button class="nav-tab" onclick="showView('matches')">📋 Matchs</button>
+  <button class="nav-tab" onclick="showView('compo')">🏉 Compo</button>
+  <button class="nav-tab" onclick="showView('stats')">📊 Stats</button>
+</div>
+
+<!-- ═══════════════════════════════ SETUP VIEW ═══════════════════════════════ -->
+<div id="view-setup" class="view active">
+
+  <div class="card">
+    <div class="card-title">🔗 Google Sheet</div>
+    <div class="gsheet-info">
+      <strong>Format requis de votre GSheet :</strong><br>
+      Colonne A : <code>Nom</code> du joueur<br>
+      Colonne B : <code>Positions</code> séparées par des virgules<br>
+      Ex: <code>Jean Dupont</code> | <code>pilier, talonneur</code><br><br>
+      <strong>Rendre le Sheet public :</strong> Partager → "Tout le monde avec le lien" → Lecteur<br><br>
+      <strong>URL CSV à coller :</strong><br>
+      <code>https://docs.google.com/spreadsheets/d/ID/export?format=csv</code>
+    </div>
+    <label>URL d'export CSV du Google Sheet</label>
+    <input type="url" id="gsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." value="">
+    <button class="btn btn-primary btn-full" onclick="loadGSheet()">⬇️ Charger les joueurs</button>
+    <div id="loadStatus" style="margin-top:8px;font-size:0.85rem;text-align:center;"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏆 Tournoi</div>
+    <label>Nom du tournoi</label>
+    <input type="text" id="tournamentNameInput" placeholder="Tournoi de printemps 2025" oninput="saveTournamentName()">
+    <button class="btn btn-outline btn-full mt-8" onclick="resetTournament()">🔄 Nouveau tournoi (remet stats à 0)</button>
+  </div>
+
+  <div class="card" id="playersPreview" style="display:none">
+    <div class="card-title">👥 Joueurs chargés</div>
+    <div id="playersList"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💾 Données locales</div>
+    <button class="btn btn-outline btn-full" onclick="exportData()">📤 Exporter JSON</button>
+    <div class="mt-8"></div>
+    <label>Importer JSON</label>
+    <input type="file" id="importFile" accept=".json" onchange="importData(event)" style="font-size:0.8rem;">
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ MATCHES VIEW ═══════════════════════════════ -->
+<div id="view-matches" class="view">
+  <div class="flex" style="margin-bottom:12px;">
+    <button class="btn btn-primary flex-1" onclick="createMatch()">+ Nouveau match</button>
+  </div>
+  <div id="matchList"></div>
+</div>
+
+<!-- ═══════════════════════════════ COMPO VIEW ═══════════════════════════════ -->
+<div id="view-compo" class="view">
+  <div id="compoHeader" style="margin-bottom:12px;"></div>
+  <div id="fieldView"></div>
+</div>
+
+<!-- ═══════════════════════════════ STATS VIEW ═══════════════════════════════ -->
+<div id="view-stats" class="view">
+  <div id="statsContent"></div>
+</div>
+
+<!-- ═══════════════════════════════ PLAYER PICKER ═══════════════════════════════ -->
+<div class="picker-overlay" id="pickerOverlay" onclick="closePicker(event)">
+  <div class="picker-sheet">
+    <div class="picker-header">
+      <div class="picker-title" id="pickerTitle">Choisir un joueur</div>
+      <button class="close-btn" onclick="closePicker()">✕</button>
+    </div>
+    <input type="text" id="pickerSearch" placeholder="Rechercher..." oninput="renderPickerList()" style="margin-bottom:8px;">
+    <ul class="player-list" id="pickerList"></ul>
+    <button class="clear-pos-btn" onclick="clearPosition()">🗑 Retirer le joueur de ce poste</button>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────────────────────
+// DATA MODEL
+// ──────────────────────────────────────────────────────────────
+const POSITIONS = [
+  { num: 1,  name: "Pilier gauche",   cat: "Avants – 1ère ligne",  type: "pilier" },
+  { num: 2,  name: "Talonneur",       cat: "Avants – 1ère ligne",  type: "talonneur" },
+  { num: 3,  name: "Pilier droit",    cat: "Avants – 1ère ligne",  type: "pilier" },
+  { num: 4,  name: "2ème ligne",      cat: "Avants – 2ème ligne",  type: "deuxieme ligne" },
+  { num: 5,  name: "2ème ligne",      cat: "Avants – 2ème ligne",  type: "deuxieme ligne" },
+  { num: 6,  name: "Flanker gauche",  cat: "Avants – 3ème ligne",  type: "flanker" },
+  { num: 7,  name: "Flanker droit",   cat: "Avants – 3ème ligne",  type: "flanker" },
+  { num: 8,  name: "Numéro 8",        cat: "Avants – 3ème ligne",  type: "numero 8" },
+  { num: 9,  name: "Demi de mêlée",   cat: "Arrières",             type: "demi de melee" },
+  { num: 10, name: "Demi d'ouverture",cat: "Arrières",             type: "demi d'ouverture" },
+  { num: 11, name: "Ailier gauche",   cat: "Arrières",             type: "ailier" },
+  { num: 12, name: "Centre",          cat: "Arrières",             type: "centre" },
+  { num: 13, name: "Centre",          cat: "Arrières",             type: "centre" },
+  { num: 14, name: "Ailier droit",    cat: "Arrières",             type: "ailier" },
+  { num: 15, name: "Arrière",         cat: "Arrières",             type: "arriere" },
+];
+
+let state = {
+  gsheetUrl: "",
+  tournamentName: "Mon Tournoi",
+  players: [],         // { name, positions[] }
+  matches: [],         // { id, name, date, lineup: {1..15: playerName|null}, entries: {playerName: count} }
+  currentMatchId: null,
+  tournamentEntries: {}, // { playerName: count } across all matches
+};
+
+// ──────────────────────────────────────────────────────────────
+// PERSISTENCE
+// ──────────────────────────────────────────────────────────────
+function save() {
+  localStorage.setItem('rugbyCoach', JSON.stringify(state));
+}
+
+function load() {
+  const raw = localStorage.getItem('rugbyCoach');
+  if (raw) {
+    try {
+      const saved = JSON.parse(raw);
+      Object.assign(state, saved);
+    } catch(e) {}
+  }
+  if (state.gsheetUrl) document.getElementById('gsheetUrl').value = state.gsheetUrl;
+  document.getElementById('tournamentNameInput').value = state.tournamentName;
+  document.getElementById('tournamentName').textContent = state.tournamentName;
+  if (state.players.length > 0) renderPlayersPreview();
+  renderMatchList();
+  renderStats();
+}
+
+// ──────────────────────────────────────────────────────────────
+// VIEWS
+// ──────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'compo') renderCompo();
+  if (name === 'stats') renderStats();
+  if (name === 'matches') renderMatchList();
+}
+
+// ──────────────────────────────────────────────────────────────
+// GSHEET LOADING
+// ──────────────────────────────────────────────────────────────
+async function loadGSheet() {
+  const url = document.getElementById('gsheetUrl').value.trim();
+  if (!url) { setStatus('⚠️ Entrez une URL', 'orange'); return; }
+
+  // Build CSV export URL from various Google Sheets URL formats
+  let csvUrl = url;
+  if (url.includes('spreadsheets/d/')) {
+    const match = url.match(/spreadsheets\/d\/([^\/\?]+)/);
+    if (match) {
+      // Check for gid
+      const gidMatch = url.match(/gid=(\d+)/);
+      const gid = gidMatch ? gidMatch[1] : '0';
+      csvUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv&gid=${gid}`;
+    }
+  }
+
+  setStatus('⏳ Chargement...', 'var(--muted)');
+  try {
+    const resp = await fetch(csvUrl);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    parseCSV(text);
+    state.gsheetUrl = url;
+    save();
+    setStatus(`✅ ${state.players.length} joueurs chargés`, 'var(--green)');
+    renderPlayersPreview();
+  } catch(e) {
+    setStatus('❌ Erreur : ' + e.message + '. Vérifiez que le sheet est public.', 'var(--red)');
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  const players = [];
+  const skip = lines[0].toLowerCase().includes('nom') || lines[0].toLowerCase().includes('name');
+  for (let i = (skip ? 1 : 0); i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    if (cols.length < 2) continue;
+    const name = cols[0].replace(/"/g, '').trim();
+    const posRaw = cols.slice(1).join(',').replace(/"/g, '');
+    const positions = posRaw.split(/[,;]/).map(p => normalizePos(p.trim())).filter(Boolean);
+    if (name) players.push({ name, positions });
+  }
+  state.players = players;
+}
+
+function normalizePos(p) {
+  const lp = p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (lp.includes('pilier')) return 'pilier';
+  if (lp.includes('talonneur')) return 'talonneur';
+  if (lp.includes('deuxieme') || lp.includes('2eme') || lp.includes('2e') || lp.includes('seconde') || lp.includes('lock')) return 'deuxieme ligne';
+  if (lp.includes('flanker') || lp.includes('flanqueur')) return 'flanker';
+  if (lp.includes('numero 8') || lp.includes('n8') || lp.includes('n°8') || lp === '8') return 'numero 8';
+  if (lp.includes('melee') || lp.includes('scrum')) return 'demi de melee';
+  if (lp.includes('ouverture') || lp.includes('fly')) return "demi d'ouverture";
+  if (lp.includes('ailier') || lp.includes('wing')) return 'ailier';
+  if (lp.includes('centre') || lp.includes('center')) return 'centre';
+  if (lp.includes('arriere') || lp.includes('fullback') || lp.includes('arriè')) return 'arriere';
+  return p.toLowerCase();
+}
+
+function setStatus(msg, color) {
+  const el = document.getElementById('loadStatus');
+  el.textContent = msg;
+  el.style.color = color;
+}
+
+function renderPlayersPreview() {
+  const div = document.getElementById('playersPreview');
+  const list = document.getElementById('playersList');
+  div.style.display = 'block';
+  list.innerHTML = state.players.map(p =>
+    `<div class="info-row">
+      <span>${p.name}</span>
+      <span style="color:var(--muted);font-size:0.75rem;">${p.positions.join(', ')}</span>
+    </div>`
+  ).join('');
+}
+
+// ──────────────────────────────────────────────────────────────
+// TOURNAMENT
+// ──────────────────────────────────────────────────────────────
+function saveTournamentName() {
+  state.tournamentName = document.getElementById('tournamentNameInput').value;
+  document.getElementById('tournamentName').textContent = state.tournamentName;
+  save();
+}
+
+function resetTournament() {
+  if (!confirm('Remettre toutes les stats du tournoi à 0 ? (Les matchs seront conservés)')) return;
+  state.tournamentEntries = {};
+  state.matches.forEach(m => m.entries = {});
+  save();
+  renderStats();
+  alert('Stats remises à 0 ✓');
+}
+
+// ──────────────────────────────────────────────────────────────
+// MATCHES
+// ──────────────────────────────────────────────────────────────
+function createMatch() {
+  const name = prompt('Nom du match (ex: Match 1, vs Clermont...)');
+  if (!name) return;
+  const match = {
+    id: Date.now(),
+    name,
+    date: new Date().toLocaleDateString('fr-FR'),
+    lineup: {},
+    entries: {},
+  };
+  // Init lineup
+  for (let i = 1; i <= 15; i++) match.lineup[i] = null;
+  state.matches.push(match);
+  state.currentMatchId = match.id;
+  save();
+  renderMatchList();
+  // Switch to compo
+  document.querySelectorAll('.nav-tab')[2].click();
+}
+
+function selectMatch(id) {
+  state.currentMatchId = id;
+  save();
+  renderMatchList();
+  document.querySelectorAll('.nav-tab')[2].click();
+}
+
+function deleteMatch(id, e) {
+  e.stopPropagation();
+  if (!confirm('Supprimer ce match ?')) return;
+  state.matches = state.matches.filter(m => m.id !== id);
+  if (state.currentMatchId === id) state.currentMatchId = state.matches.length ? state.matches[state.matches.length-1].id : null;
+  recomputeTournamentEntries();
+  save();
+  renderMatchList();
+  renderStats();
+}
+
+function renderMatchList() {
+  const div = document.getElementById('matchList');
+  if (!state.matches.length) {
+    div.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>Aucun match.<br>Créez votre premier match !</p></div>`;
+    return;
+  }
+  div.innerHTML = state.matches.map(m => {
+    const filled = Object.values(m.lineup).filter(Boolean).length;
+    const isCurrent = m.id === state.currentMatchId;
+    return `<div class="match-item ${isCurrent ? 'current' : ''}" onclick="selectMatch(${m.id})">
+      <div>
+        <div class="match-name">${m.name} ${isCurrent ? '<span class="match-badge">EN COURS</span>' : ''}</div>
+        <div class="match-info">${m.date} · ${filled}/15 postes remplis</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id}, event)">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function getCurrentMatch() {
+  return state.matches.find(m => m.id === state.currentMatchId) || null;
+}
+
+// ──────────────────────────────────────────────────────────────
+// COMPO
+// ──────────────────────────────────────────────────────────────
+function renderCompo() {
+  const match = getCurrentMatch();
+  const header = document.getElementById('compoHeader');
+  const field = document.getElementById('fieldView');
+
+  if (!match) {
+    header.innerHTML = '';
+    field.innerHTML = `<div class="empty-state"><div class="icon">🏉</div><p>Sélectionnez ou créez un match<br>dans l'onglet Matchs.</p></div>`;
+    return;
+  }
+
+  // Count filled
+  const filled = Object.values(match.lineup).filter(Boolean).length;
+
+  header.innerHTML = `
+    <div class="card" style="padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.1rem;">${match.name}</div>
+          <div style="font-size:0.75rem;color:var(--muted);">${match.date}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.3rem;color:${filled===15?'var(--green)':'var(--accent)'};">${filled}/15</div>
+          <div style="font-size:0.7rem;color:var(--muted);">postes remplis</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Group positions by category
+  const cats = {};
+  POSITIONS.forEach(p => {
+    if (!cats[p.cat]) cats[p.cat] = [];
+    cats[p.cat].push(p);
+  });
+
+  let html = '';
+  Object.entries(cats).forEach(([cat, positions]) => {
+    html += `<div class="field-section"><div class="section-label">${cat}</div><div class="position-row">`;
+    positions.forEach(pos => {
+      const player = match.lineup[pos.num];
+      const entries = player ? (match.entries[player] || 0) : 0;
+      const tEntries = player ? (state.tournamentEntries[player] || 0) : 0;
+      html += `<div class="position-slot ${player ? 'filled' : ''}" onclick="openPicker(${pos.num})">
+        <div class="pos-number">${pos.num}</div>
+        <div class="pos-name">${pos.name}</div>
+        ${player
+          ? `<div class="pos-player">${player}</div>${entries > 0 ? `<div class="pos-entries" title="Entrées match">${entries}</div>` : ''}`
+          : `<div class="pos-empty">Choisir...</div>`
+        }
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+
+  field.innerHTML = html;
+}
+
+// ──────────────────────────────────────────────────────────────
+// PICKER
+// ──────────────────────────────────────────────────────────────
+let pickerPosNum = null;
+
+function openPicker(posNum) {
+  const match = getCurrentMatch();
+  if (!match) return;
+  pickerPosNum = posNum;
+  const pos = POSITIONS.find(p => p.num === posNum);
+  document.getElementById('pickerTitle').textContent = `#${posNum} – ${pos.name}`;
+  document.getElementById('pickerSearch').value = '';
+  document.getElementById('pickerOverlay').classList.add('open');
+  renderPickerList();
+}
+
+function renderPickerList() {
+  const match = getCurrentMatch();
+  if (!match || !pickerPosNum) return;
+  const pos = POSITIONS.find(p => p.num === pickerPosNum);
+  const search = document.getElementById('pickerSearch').value.toLowerCase();
+
+  // Get already assigned players (except current pos)
+  const assignedPlayers = new Set();
+  for (let i = 1; i <= 15; i++) {
+    if (i !== pickerPosNum && match.lineup[i]) assignedPlayers.add(match.lineup[i]);
+  }
+
+  let players = state.players.filter(p => {
+    if (search && !p.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // Sort: suggested first (can play this position), then others
+  const suggested = players.filter(p => p.positions.includes(pos.type));
+  const others = players.filter(p => !p.positions.includes(pos.type));
+  players = [...suggested, ...others];
+
+  const ul = document.getElementById('pickerList');
+  if (!players.length) {
+    ul.innerHTML = '<li style="padding:16px;text-align:center;color:var(--muted);">Aucun joueur trouvé</li>';
+    return;
+  }
+
+  ul.innerHTML = players.map(p => {
+    const isSuggested = p.positions.includes(pos.type);
+    const isAssigned = assignedPlayers.has(p.name);
+    const matchEntries = match.entries[p.name] || 0;
+    const tournamentEntries = state.tournamentEntries[p.name] || 0;
+    return `<li class="player-item ${isSuggested ? 'suggested' : ''}" onclick="selectPlayer('${escapeJs(p.name)}')" style="${isAssigned ? 'opacity:0.45' : ''}">
+      <div>
+        <span class="player-item-name">${p.name}</span>
+        ${isSuggested ? '<span class="suggested-tag">✓ POSTE</span>' : ''}
+        ${isAssigned ? '<span style="font-size:0.65rem;color:var(--red);margin-left:4px;">DÉJÀ EN JEU</span>' : ''}
+        <div class="player-item-meta">${p.positions.join(', ')}</div>
+      </div>
+      <div class="player-item-entries">
+        <span>Match: <strong style="color:var(--accent)">${matchEntries}</strong></span>
+        <span>Tournoi: <strong style="color:var(--accent2)">${tournamentEntries}</strong></span>
+      </div>
+    </li>`;
+  }).join('');
+}
+
+function selectPlayer(playerName) {
+  const match = getCurrentMatch();
+  if (!match || !pickerPosNum) return;
+
+  // If player was previously at another pos in this match, register an entry
+  const prevPos = Object.entries(match.lineup).find(([pos, name]) => name === playerName && parseInt(pos) !== pickerPosNum);
+
+  // Record an entry if player is being moved/added
+  if (!match.lineup[pickerPosNum] || match.lineup[pickerPosNum] !== playerName) {
+    match.entries[playerName] = (match.entries[playerName] || 0) + 1;
+    state.tournamentEntries[playerName] = (state.tournamentEntries[playerName] || 0) + 1;
+  }
+
+  match.lineup[pickerPosNum] = playerName;
+  save();
+  closePicker();
+  renderCompo();
+}
+
+function clearPosition() {
+  const match = getCurrentMatch();
+  if (!match || !pickerPosNum) return;
+  match.lineup[pickerPosNum] = null;
+  save();
+  closePicker();
+  renderCompo();
+}
+
+function closePicker(e) {
+  if (e && e.target !== document.getElementById('pickerOverlay')) return;
+  document.getElementById('pickerOverlay').classList.remove('open');
+  pickerPosNum = null;
+}
+
+// ──────────────────────────────────────────────────────────────
+// STATS
+// ──────────────────────────────────────────────────────────────
+function recomputeTournamentEntries() {
+  const totals = {};
+  state.matches.forEach(m => {
+    Object.entries(m.entries || {}).forEach(([player, count]) => {
+      totals[player] = (totals[player] || 0) + count;
+    });
+  });
+  state.tournamentEntries = totals;
+}
+
+function renderStats() {
+  const div = document.getElementById('statsContent');
+  const match = getCurrentMatch();
+
+  // Combine all players who have entries
+  const allNames = new Set([
+    ...state.players.map(p => p.name),
+    ...Object.keys(state.tournamentEntries),
+  ]);
+
+  const rows = [...allNames].map(name => {
+    const tCount = state.tournamentEntries[name] || 0;
+    const mCount = match ? (match.entries[name] || 0) : 0;
+    const playerData = state.players.find(p => p.name === name);
+    return { name, tCount, mCount, positions: playerData ? playerData.positions : [] };
+  }).sort((a, b) => b.tCount - a.tCount);
+
+  const maxT = Math.max(...rows.map(r => r.tCount), 1);
+  const maxM = Math.max(...rows.map(r => r.mCount), 1);
+
+  // Summary cards
+  const totalPlayers = state.players.length;
+  const matchCount = state.matches.length;
+  const currentFilled = match ? Object.values(match.lineup).filter(Boolean).length : 0;
+  const neverPlayed = rows.filter(r => r.tCount === 0).length;
+
+  div.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div class="card" style="padding:12px;text-align:center;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2rem;color:var(--accent)">${matchCount}</div>
+        <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Matchs</div>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2rem;color:var(--green)">${totalPlayers}</div>
+        <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Joueurs</div>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2rem;color:var(--accent2)">${currentFilled}/15</div>
+        <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Match actuel</div>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2rem;color:var(--red)">${neverPlayed}</div>
+        <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">N'ont pas joué</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 Entrées par joueur</div>
+      ${rows.length === 0 ? '<div class="text-muted text-center" style="padding:20px;">Aucune donnée encore</div>' : ''}
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>Joueur</th>
+            <th style="text-align:right;">Match</th>
+            <th style="text-align:right;">Tournoi</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td>
+                <div style="font-weight:500;">${r.name}</div>
+                <div style="font-size:0.7rem;color:var(--muted);">${r.positions.join(', ') || '—'}</div>
+              </td>
+              <td style="text-align:right;">
+                <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;color:${r.mCount>0?'var(--accent)':'var(--muted)'};">${r.mCount}</div>
+                <div class="stat-bar" style="width:60px;margin-left:auto;"><div class="stat-bar-fill" style="width:${Math.round(r.mCount/maxM*100)}%"></div></div>
+              </td>
+              <td style="text-align:right;">
+                <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;color:${r.tCount>0?'var(--accent2)':'var(--muted)'};">${r.tCount}</div>
+                <div class="stat-bar" style="width:60px;margin-left:auto;"><div class="stat-bar-fill" style="background:var(--accent2);width:${Math.round(r.tCount/maxT*100)}%"></div></div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    ${match ? `
+    <div class="card">
+      <div class="card-title">🏉 Composition – ${match.name}</div>
+      ${POSITIONS.map(pos => {
+        const player = match.lineup[pos.num];
+        return `<div class="info-row">
+          <span><span style="color:var(--muted);font-size:0.8rem;">#${pos.num} ${pos.name}</span>${player ? ` · ${player}` : ' · <em style="color:var(--muted);">vide</em>'}</span>
+          ${player ? `<span class="info-val">${match.entries[player] || 0}</span>` : ''}
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+  `;
+}
+
+// ──────────────────────────────────────────────────────────────
+// IMPORT / EXPORT
+// ──────────────────────────────────────────────────────────────
+function exportData() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `coach-rugby-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      Object.assign(state, data);
+      save();
+      load();
+      alert('✅ Données importées avec succès !');
+    } catch(err) {
+      alert('❌ Fichier JSON invalide');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ──────────────────────────────────────────────────────────────
+// UTILS
+// ──────────────────────────────────────────────────────────────
+function escapeJs(str) {
+  return str.replace(/'/g, "\\'").replace(/\\/g, "\\\\");
+}
+
+// ──────────────────────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────────────────────
+load();
+
+// Demo players if no players loaded
+if (state.players.length === 0) {
+  state.players = [
+    { name: "Jean Dupont", positions: ["pilier"] },
+    { name: "Marc Leroy", positions: ["talonneur"] },
+    { name: "Pierre Martin", positions: ["pilier"] },
+    { name: "Lucas Bernard", positions: ["deuxieme ligne"] },
+    { name: "Thomas Petit", positions: ["deuxieme ligne", "flanker"] },
+    { name: "Antoine Moreau", positions: ["flanker"] },
+    { name: "Nicolas Simon", positions: ["flanker", "numero 8"] },
+    { name: "Julien Laurent", positions: ["numero 8"] },
+    { name: "Romain Garcia", positions: ["demi de melee"] },
+    { name: "Alexandre Roux", positions: ["demi d'ouverture"] },
+    { name: "Maxime David", positions: ["ailier"] },
+    { name: "Clément Bertrand", positions: ["centre"] },
+    { name: "Florian Morel", positions: ["centre"] },
+    { name: "Baptiste Fournier", positions: ["ailier"] },
+    { name: "Théo Girard", positions: ["arriere"] },
+    { name: "Hugo Lambert", positions: ["pilier", "talonneur"] },
+    { name: "Mathieu Renard", positions: ["flanker", "deuxieme ligne"] },
+    { name: "Paul Lefebvre", positions: ["centre", "ailier"] },
+  ];
+  renderPlayersPreview();
+}
+</script>
+</body>
+</html>
