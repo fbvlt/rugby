@@ -1,0 +1,13 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Coaching App",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Coach",
+  "start_url": "/",
+  "theme_color": "#0a1628",
+  "id": "Coach-v1",
+  "description": "This app enables you to manage your team during tournaments.\nIt supports initial layup definition (manually or suggested) for each game, swaps and changes during games, and logs time and position statistics for the tournament."
+}
