@@ -153,6 +153,11 @@ label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.78re
 @keyframes subPulse{0%,100%{box-shadow:0 0 0 2px rgba(232,160,32,.35),0 0 16px rgba(232,160,32,.15)}50%{box-shadow:0 0 0 3px rgba(232,160,32,.6),0 0 24px rgba(232,160,32,.3)}}
 .sub-since{font-size:0.6rem;color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;margin-top:3px;letter-spacing:.5px}
 .sub-since-big{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:1px;margin-top:4px;line-height:1}
+/* SWAP */
+.position-slot.swap-first{border-color:var(--blue)!important;background:rgba(52,152,219,.15)!important;box-shadow:0 0 0 2px rgba(52,152,219,.4)!important}
+.position-slot.swap-first .pos-number{color:var(--blue)!important}
+.position-slot.swap-target{border-color:var(--blue)!important;background:rgba(52,152,219,.06)!important;border-style:dashed;animation:swapPulse 1.2s infinite}
+@keyframes swapPulse{0%,100%{opacity:1}50%{opacity:.6}}
 /* BENCH */
 .bench-player{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .2s;touch-action:manipulation}
 .bench-player:active{transform:scale(.98)}
@@ -220,6 +225,11 @@ label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.78re
     <button class="btn btn-outline btn-full" onclick="resetTournament()" style="margin-top:4px">🔄 Nouveau tournoi (reset stats)</button>
   </div>
 
+  <div class="card" id="absentCard" style="display:none">
+    <div class="card-title">🚫 Absents du tournoi</div>
+    <div id="absentList"></div>
+  </div>
+
   <div class="card" id="playersPreview" style="display:none">
     <div class="card-title">👥 Joueurs chargés · <span id="playerCount">0</span></div>
     <div id="playersList"></div>
@@ -258,6 +268,17 @@ label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.78re
 <!-- ════════════ BENCH / REMPLAÇANTS ════════════ -->
 <div id="view-bench" class="view">
   <div id="benchContent"></div>
+</div>
+
+<!-- ════════════ SWAP OVERLAY ════════════ -->
+<div class="picker-overlay" id="swapOverlay" onclick="closeSwap(event)">
+  <div class="picker-sheet">
+    <div class="picker-header">
+      <div class="picker-title" id="swapTitle">Swap</div>
+      <button class="close-btn" onclick="closeSwap()">✕</button>
+    </div>
+    <div id="swapContent"></div>
+  </div>
 </div>
 
 <!-- ════════════ PICKER ════════════ -->
@@ -332,6 +353,8 @@ let state = {
   currentMatchId:null,
   tournamentEntries:{},
   tournamentPlaytime:{},
+  absentPlayers:[],  // names of players absent for this tournament
+  positionPlaytime:{}, // {playerName: {posType: seconds}}
 };
 
 // BENCH state
@@ -359,7 +382,7 @@ function load() {
   document.getElementById('tournamentNameInput').value = state.tournamentName;
   document.getElementById('tournamentName').textContent = state.tournamentName;
   updateFormatBtns();
-  if (state.players.length > 0) renderPlayersPreview();
+  if (state.players.length > 0) { renderPlayersPreview(); renderAbsentList(); }
   renderMatchList();
 }
 
@@ -372,6 +395,7 @@ function showView(name, el) {
   document.getElementById('view-'+name).classList.add('active');
   if (el) el.classList.add('active');
   if (name !== 'bench') { benchSelectedPlayer = null; }
+  if (name !== 'compo') { swapMode = false; swapFirstPos = null; }
   if (name==='compo') renderCompo();
   if (name==='stats') renderStats();
   if (name==='matches') renderMatchList();
@@ -456,6 +480,33 @@ function renderPlayersPreview() {
   document.getElementById('playersList').innerHTML = state.players.map(p=>
     `<div class="info-row"><span>${p.name}</span><span style="color:var(--muted);font-size:.72rem">${p.positions.join(', ')}</span></div>`
   ).join('');
+  renderAbsentList();
+}
+
+function renderAbsentList() {
+  if (!state.players.length) return;
+  document.getElementById('absentCard').style.display='block';
+  document.getElementById('absentList').innerHTML = state.players.map(p => {
+    const isAbsent = state.absentPlayers.includes(p.name);
+    return `<div class="info-row" style="cursor:pointer" onclick="toggleAbsent('${escapeJs(p.name)}')">
+      <span style="${isAbsent?'color:var(--muted);text-decoration:line-through':''}">${p.name}</span>
+      <span style="font-size:.78rem;color:${isAbsent?'var(--red)':'var(--muted)'}">
+        ${isAbsent?'🚫 Absent':'✓ Présent'}
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function toggleAbsent(name) {
+  const idx = state.absentPlayers.indexOf(name);
+  if (idx>=0) state.absentPlayers.splice(idx,1);
+  else state.absentPlayers.push(name);
+  save();
+  renderAbsentList();
+}
+
+function isAvailable(playerName) {
+  return !state.absentPlayers.includes(playerName);
 }
 
 // ════════════════════════════════════════════════
@@ -710,13 +761,22 @@ function onPlayerPlaced(name) {
 }
 
 // Called when a player is removed from the field
-function onPlayerRemoved(name) {
+function onPlayerRemoved(name, posType) {
   if (!timer.playerStartTs[name]) return;
   const match=getCurrentMatch(); if(!match) return;
   const elapsed=Math.round((Date.now()-timer.playerStartTs[name])/1000);
   if (elapsed>0) {
     match.playtime[name]=(match.playtime[name]||0)+elapsed;
     state.tournamentPlaytime[name]=(state.tournamentPlaytime[name]||0)+elapsed;
+    // Track by position type
+    if (posType) {
+      if (!match.positionPlaytime) match.positionPlaytime={};
+      if (!match.positionPlaytime[name]) match.positionPlaytime[name]={};
+      match.positionPlaytime[name][posType]=(match.positionPlaytime[name][posType]||0)+elapsed;
+      if (!state.positionPlaytime) state.positionPlaytime={};
+      if (!state.positionPlaytime[name]) state.positionPlaytime[name]={};
+      state.positionPlaytime[name][posType]=(state.positionPlaytime[name][posType]||0)+elapsed;
+    }
     save();
   }
   delete timer.playerStartTs[name];
@@ -752,6 +812,14 @@ function renderCompo() {
         <div style="font-size:.7rem;color:var(--muted)">postes</div>
       </div>
     </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="btn btn-outline flex-1" style="font-size:.8rem;padding:8px" onclick="toggleSwapMode()">
+        ${swapMode ? (swapFirstPos!==null ? '✕ Annuler' : '✕ Quitter swap') : '🔀 Swap joueurs'}
+      </button>
+      <button class="btn btn-primary flex-1" style="font-size:.8rem;padding:8px" onclick="autoFillLineup()">
+        ⚡ Sélection auto
+      </button>
+    </div>
   </div>`;
 
   const cats={};
@@ -767,7 +835,11 @@ function renderCompo() {
       const liveTime=player?getLiveExtra(player):0;
       const totalSecs=savedTime+liveTime;
       const isOnField=player&&timer.playerStartTs[player]&&timer.running;
-      html+=`<div class="position-slot ${player?(isOnField?'onfield':'filled'):''}" onclick="openPicker(${p.num})">
+      const isSwapFirst = swapFirstPos===p.num;
+      const isSwapTarget = swapFirstPos!==null && swapFirstPos!==p.num;
+      const slotCls = isSwapFirst ? 'swap-first' : (swapMode&&swapFirstPos!==null) ? 'swap-target' : (player?(isOnField?'onfield':'filled'):'');
+      const slotClick = swapMode ? (swapFirstPos===null ? 'setSwapFirst('+p.num+')' : 'doSwap('+p.num+')') : 'openPicker('+p.num+')';
+      html+=`<div class="position-slot ${slotCls}" onclick="${slotClick}">
         <div class="pos-number">${p.num}</div>
         <div class="pos-name">${p.name}</div>
         ${player
@@ -786,6 +858,8 @@ function renderCompo() {
 // PICKER
 // ════════════════════════════════════════════════
 let pickerPosNum=null;
+let swapFirstPos=null; // pos num of first selected slot for swap
+let swapMode=false; // true when swap mode is active
 
 function openPicker(posNum) {
   const match=getCurrentMatch(); if(!match) return;
@@ -803,7 +877,7 @@ function renderPickerList() {
   const pos=positions.find(p=>p.num===pickerPosNum);
   const search=document.getElementById('pickerSearch').value.toLowerCase();
   const assigned=new Set(positions.filter(p=>p.num!==pickerPosNum&&match.lineup[p.num]).map(p=>match.lineup[p.num]));
-  let players=state.players.filter(p=>!search||p.name.toLowerCase().includes(search));
+  let players=state.players.filter(p=>isAvailable(p.name)&&(!search||p.name.toLowerCase().includes(search)));
   const suggested=players.filter(p=>p.positions.includes(pos.type));
   const others=players.filter(p=>!p.positions.includes(pos.type));
   players=[...suggested,...others];
@@ -835,7 +909,8 @@ function renderPickerList() {
 function selectPlayer(playerName) {
   const match=getCurrentMatch(); if(!match||!pickerPosNum) return;
   const prevPlayer=match.lineup[pickerPosNum];
-  if (prevPlayer && prevPlayer!==playerName) onPlayerRemoved(prevPlayer);
+  const posType=getPositions(match).find(p=>p.num===pickerPosNum)?.type;
+  if (prevPlayer && prevPlayer!==playerName) onPlayerRemoved(prevPlayer, posType);
   if (!match.lineup[pickerPosNum]||match.lineup[pickerPosNum]!==playerName) {
     match.entries[playerName]=(match.entries[playerName]||0)+1;
     state.tournamentEntries[playerName]=(state.tournamentEntries[playerName]||0)+1;
@@ -849,7 +924,8 @@ function selectPlayer(playerName) {
 function clearPosition() {
   const match=getCurrentMatch(); if(!match||!pickerPosNum) return;
   const prev=match.lineup[pickerPosNum];
-  if (prev) onPlayerRemoved(prev);
+  const posType=getPositions(match).find(p=>p.num===pickerPosNum)?.type;
+  if (prev) onPlayerRemoved(prev, posType);
   match.lineup[pickerPosNum]=null;
   match.lastChangeTs[pickerPosNum]=Date.now();
   save(); closePicker(); renderCompo(); renderBench();
@@ -865,12 +941,18 @@ function closePicker(e) {
 // STATS
 // ════════════════════════════════════════════════
 function recomputeTournamentStats() {
-  const entries={}, playtime={};
+  const entries={}, playtime={}, positionPlaytime={};
   state.matches.forEach(m=>{
     Object.entries(m.entries||{}).forEach(([p,c])=>entries[p]=(entries[p]||0)+c);
     Object.entries(m.playtime||{}).forEach(([p,s])=>playtime[p]=(playtime[p]||0)+s);
+    Object.entries(m.positionPlaytime||{}).forEach(([player,pts])=>{
+      if (!positionPlaytime[player]) positionPlaytime[player]={};
+      Object.entries(pts).forEach(([posType,s])=>{
+        positionPlaytime[player][posType]=(positionPlaytime[player][posType]||0)+s;
+      });
+    });
   });
-  state.tournamentEntries=entries; state.tournamentPlaytime=playtime;
+  state.tournamentEntries=entries; state.tournamentPlaytime=playtime; state.positionPlaytime=positionPlaytime;
 }
 
 function renderStats() {
@@ -942,7 +1024,82 @@ function renderStats() {
           ${player?`<span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--green)">${t}</span>`:''}
         </div>`;
       }).join('')}
-    </div>`:''}`;
+    </div>`:''}
+
+    ${renderPositionPlaytimeTable()}
+  `;
+}
+
+function renderPositionPlaytimeTable() {
+  const pp = state.positionPlaytime || {};
+  if (!Object.keys(pp).length) return '';
+
+  // Collect all position types seen
+  const allPosTypes = new Set();
+  Object.values(pp).forEach(pts => Object.keys(pts).forEach(t => allPosTypes.add(t)));
+  const posTypes = [...allPosTypes].sort();
+
+  // Helper: short label for pos type
+  function posLabel(pt) {
+    return pt.replace('demi de melee','D.Mêlée').replace("demi d'ouverture",'D.Ouv.')
+             .replace('deuxieme ligne','2e L.').replace('numero 8','N°8');
+  }
+
+  // Build rows
+  const playerNames = [...new Set([...state.players.map(p=>p.name), ...Object.keys(pp)])];
+  const rows = playerNames.map(name => {
+    const pd = state.players.find(p => p.name === name);
+    const naturalTypes = pd ? pd.positions : [];
+    const pts = pp[name] || {};
+    const total = Object.values(pts).reduce((a,b)=>a+b, 0);
+    // Time on natural positions
+    const naturalTime = Object.entries(pts)
+      .filter(([posType]) => naturalTypes.includes(posType))
+      .reduce((a,[,s])=>a+s, 0);
+    const naturalPct = total > 0 ? Math.round(naturalTime / total * 100) : null;
+    return { name, pts, total, naturalTypes, naturalTime, naturalPct };
+  })
+  .filter(r => r.total > 0)
+  .sort((a,b) => b.total - a.total);
+
+  if (!rows.length) return '';
+
+  return `<div class="card" style="overflow-x:auto">
+    <div class="card-title">📍 Temps de jeu par poste — Tournoi</div>
+    <table class="stats-table" style="min-width:100%">
+      <thead><tr>
+        <th>Joueur</th>
+        ${posTypes.map(pt=>`<th style="text-align:right;font-size:.62rem;white-space:nowrap">${posLabel(pt)}</th>`).join('')}
+        <th style="text-align:right;white-space:nowrap">Total</th>
+        <th style="text-align:right;white-space:nowrap;color:var(--accent2)">% Naturel</th>
+      </tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td style="font-weight:500;white-space:nowrap">${r.name}
+          <div style="font-size:.62rem;color:var(--muted)">${r.naturalTypes.join(', ')||'—'}</div>
+        </td>
+        ${posTypes.map(pt=>{
+          const secs = r.pts[pt]||0;
+          const isNatural = r.naturalTypes.includes(pt);
+          // Color: green for natural pos, accent2 for deputising, muted for zero
+          const col = secs===0 ? 'var(--muted)' : isNatural ? 'var(--green)' : 'var(--accent)';
+          return `<td style="text-align:right;color:${col};font-family:'Barlow Condensed',sans-serif;font-weight:700">
+            ${secs>0 ? fmtTime(secs) : '—'}
+            ${secs>0&&!isNatural ? '<span style="font-size:.55rem;color:var(--accent);vertical-align:super">dép.</span>' : ''}
+          </td>`;
+        }).join('')}
+        <td style="text-align:right;font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--green);white-space:nowrap">${fmtTime(r.total)}</td>
+        <td style="text-align:right;white-space:nowrap">
+          ${r.naturalPct !== null
+            ? `<span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;color:${r.naturalPct>=80?'var(--green)':r.naturalPct>=50?'var(--accent2)':'var(--accent)'}">${r.naturalPct}%</span>
+               <div style="height:3px;background:var(--border);border-radius:2px;margin-top:2px;width:44px;margin-left:auto;overflow:hidden">
+                 <div style="height:100%;width:${r.naturalPct}%;background:${r.naturalPct>=80?'var(--green)':r.naturalPct>=50?'var(--accent2)':'var(--accent)'};border-radius:2px"></div>
+               </div>`
+            : `<span style="color:var(--muted)">—</span>`
+          }
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
 }
 
 
@@ -963,9 +1120,9 @@ function renderBench() {
   const positions = getPositions(match);
   const onFieldPlayers = new Set(positions.map(p => match.lineup[p.num]).filter(Boolean));
 
-  // Bench list: players NOT on field, sorted by tournament playtime ASCENDING (least played first)
+  // Bench list: available players NOT on field, sorted by tournament playtime ASCENDING
   const benchPlayers = state.players
-    .filter(p => !onFieldPlayers.has(p.name))
+    .filter(p => !onFieldPlayers.has(p.name) && isAvailable(p.name))
     .map(p => ({
       name: p.name,
       positions: p.positions,
@@ -1077,9 +1234,10 @@ function doSubstitution(posNum) {
   if (!match || !benchSelectedPlayer) return;
 
   const outgoingPlayer = match.lineup[posNum];
+  const posType = getPositions(match).find(p=>p.num===posNum)?.type;
 
-  // Flush outgoing player's time
-  if (outgoingPlayer) onPlayerRemoved(outgoingPlayer);
+  // Flush outgoing player's time with position tracking
+  if (outgoingPlayer) onPlayerRemoved(outgoingPlayer, posType);
 
   // Record entry
   match.entries[benchSelectedPlayer] = (match.entries[benchSelectedPlayer] || 0) + 1;
@@ -1093,6 +1251,120 @@ function doSubstitution(posNum) {
   benchSelectedPlayer = null;
   renderBench();
   renderCompo();
+}
+
+
+// ════════════════════════════════════════════════
+// SWAP MODE
+// ════════════════════════════════════════════════
+function setSwapFirst(posNum) {
+  swapFirstPos = posNum;
+  renderCompo();
+}
+
+function toggleSwapMode() {
+  swapMode = !swapMode;
+  swapFirstPos = null;
+  renderCompo();
+}
+
+function doSwap(posNum) {
+  const match = getCurrentMatch(); if (!match) return;
+  if (swapFirstPos === null) return;
+  if (swapFirstPos === posNum) { swapFirstPos = null; renderCompo(); return; }
+
+  const p1 = match.lineup[swapFirstPos];
+  const p2 = match.lineup[posNum];
+
+  // Flush playtimes before swap with correct posType
+  const pos1Type = getPositions(match).find(p=>p.num===swapFirstPos)?.type;
+  const pos2Type = getPositions(match).find(p=>p.num===posNum)?.type;
+  if (p1) onPlayerRemoved(p1, pos1Type);
+  if (p2) onPlayerRemoved(p2, pos2Type);
+
+  // Swap
+  match.lineup[swapFirstPos] = p2;
+  match.lineup[posNum] = p1;
+  match.lastChangeTs[swapFirstPos] = Date.now();
+  match.lastChangeTs[posNum] = Date.now();
+
+  // Restart time tracking
+  if (p2) onPlayerPlaced(p2);
+  if (p1) onPlayerPlaced(p1);
+
+  swapFirstPos = null;
+  save(); renderCompo(); renderBench();
+}
+
+// openPicker in swap mode: select first slot
+function openPickerOrSwap(posNum) {
+  if (swapFirstPos !== null) { doSwap(posNum); return; }
+  openPicker(posNum);
+}
+
+// ════════════════════════════════════════════════
+// AUTO FILL LINEUP
+// ════════════════════════════════════════════════
+function autoFillLineup() {
+  const match = getCurrentMatch(); if (!match) return;
+  const positions = getPositions(match);
+  const available = state.players.filter(p => isAvailable(p.name));
+
+  // Sort available players by tournament playtime ascending (less played = higher priority)
+  const sorted = [...available].sort((a,b)=>
+    (state.tournamentPlaytime[a.name]||0) - (state.tournamentPlaytime[b.name]||0)
+  );
+
+  const newLineup = {};
+  positions.forEach(p => newLineup[p.num] = null);
+  const assigned = new Set();
+
+  // First pass: assign players to their natural positions (least played first)
+  positions.forEach(pos => {
+    const candidate = sorted.find(p => !assigned.has(p.name) && p.positions.includes(pos.type));
+    if (candidate) {
+      newLineup[pos.num] = candidate.name;
+      assigned.add(candidate.name);
+    }
+  });
+
+  // Second pass: fill remaining empty positions with any unassigned player
+  // Sort by: least time played at THIS specific position first (deputising awareness),
+  // then fallback to least total tournament playtime
+  positions.forEach(pos => {
+    if (!newLineup[pos.num]) {
+      const unassigned = sorted.filter(p => !assigned.has(p.name));
+      if (!unassigned.length) return;
+      // Sort by playtime at this posType ascending, then total playtime ascending
+      unassigned.sort((a, b) => {
+        const aPosTime = ((state.positionPlaytime||{})[a.name]||{})[pos.type] || 0;
+        const bPosTime = ((state.positionPlaytime||{})[b.name]||{})[pos.type] || 0;
+        if (aPosTime !== bPosTime) return aPosTime - bPosTime; // less time at this pos = priority
+        return (state.tournamentPlaytime[a.name]||0) - (state.tournamentPlaytime[b.name]||0);
+      });
+      const candidate = unassigned[0];
+      newLineup[pos.num] = candidate.name;
+      assigned.add(candidate.name);
+    }
+  });
+
+  const filledCount = Object.values(newLineup).filter(Boolean).length;
+  if (!confirm(`Remplir automatiquement ${filledCount}/${positions.length} postes selon les temps de jeu ?\nLes postes déjà remplis seront remplacés.`)) return;
+
+  // Flush all current players
+  positions.forEach(pos => {
+    const p = match.lineup[pos.num];
+    if (p) onPlayerRemoved(p, pos.type);
+  });
+
+  match.lineup = newLineup;
+  match.lastChangeTs = {};
+  positions.forEach(p => { if (newLineup[p.num]) match.lastChangeTs[p.num] = Date.now(); });
+
+  // Start tracking new players
+  positions.forEach(pos => { if (newLineup[pos.num]) onPlayerPlaced(newLineup[pos.num]); });
+
+  save(); renderCompo(); renderBench();
 }
 
 // ════════════════════════════════════════════════
