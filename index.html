@@ -175,6 +175,28 @@ label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.78re
 .header-left{display:flex;align-items:center;gap:10px}
 .cfg-btn{background:rgba(232,160,32,.12);border:1px solid rgba(232,160,32,.3);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--accent);cursor:pointer;touch-action:manipulation;transition:all .2s;font-size:1.1rem;flex-shrink:0}
 .cfg-btn:active{background:rgba(232,160,32,.25);transform:scale(.95)}
+
+/* OVERTIME */
+.timer-display.overtime{color:#ff6b6b!important;animation:overtimePulse 1s infinite}
+@keyframes overtimePulse{0%,100%{opacity:1}50%{opacity:.6}}
+.timer-block.overtime{border-color:#ff6b6b!important}
+
+/* PAUSE item in match list */
+.pause-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border:1px dashed var(--border);border-radius:10px;margin-bottom:8px;opacity:.85}
+.pause-name{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.95rem;color:var(--muted)}
+.pause-info{font-size:.7rem;color:var(--muted);margin-top:2px}
+.time-pill{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.8rem;color:var(--accent2);cursor:pointer;transition:background .15s}
+.time-pill:active{background:var(--card)}
+
+/* SUB SUGGESTION banner */
+.sub-suggestion{background:rgba(52,152,219,.1);border:2px solid var(--blue);border-radius:12px;padding:14px;margin-bottom:12px;animation:suggPulse 2s infinite}
+@keyframes suggPulse{0%,100%{box-shadow:0 0 0 0 rgba(52,152,219,.3)}50%{box-shadow:0 0 0 6px rgba(52,152,219,.0)}}
+.suggestion-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(36,61,102,.4);font-size:.82rem}
+.suggestion-row:last-child{border-bottom:none}
+.sugg-arrow{color:var(--blue);font-size:1rem;margin:0 8px}
+.sugg-out{color:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:700}
+.sugg-in{color:var(--green);font-family:'Barlow Condensed',sans-serif;font-weight:700}
+.sugg-pos{font-size:.68rem;color:var(--muted);margin-top:1px}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -247,7 +269,8 @@ label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.78re
 <!-- ════════════ MATCHES ════════════ -->
 <div id="view-matches" class="view active">
   <div class="flex" style="margin-bottom:12px">
-    <button class="btn btn-primary flex-1" onclick="createMatch()">+ Nouveau match</button>
+    <button class="btn btn-primary flex-1" onclick="createMatch()">+ Match</button>
+    <button class="btn btn-outline" onclick="createPause()" style="white-space:nowrap">⏸ Pause</button>
   </div>
   <div id="matchList"></div>
 </div>
@@ -353,8 +376,9 @@ let state = {
   currentMatchId:null,
   tournamentEntries:{},
   tournamentPlaytime:{},
-  absentPlayers:[],  // names of players absent for this tournament
-  positionPlaytime:{}, // {playerName: {posType: seconds}}
+  absentPlayers:[],
+  positionPlaytime:{},
+  subIntervalMin:0,  // 0=disabled, otherwise minutes between sub suggestions
 };
 
 // BENCH state
@@ -363,11 +387,14 @@ let benchSelectedPlayer = null;
 // TIMER (in-memory, not persisted)
 let timer = {
   running:false,
-  secondsLeft:0,
+  secondsLeft:0,      // counts DOWN; goes negative in overtime
   totalSeconds:0,
-  period:1,        // 1=1st half  1.5=halftime break  2=2nd half  0=finished
+  period:1,
+  overtime:false,     // true when past regulation time
   intervalId:null,
-  playerStartTs:{}, // {playerName: Date.now()}
+  playerStartTs:{},
+  subIntervalId:null, // interval for sub suggestions
+  nextSubAt:0,        // timestamp when next sub suggestion fires
 };
 
 // ════════════════════════════════════════════════
@@ -531,12 +558,14 @@ function resetTournament() {
 function createMatch() {
   const name = prompt('Nom du match (ex: Match 1, vs Clermont)');
   if (!name) return;
+  const startTime = prompt('Heure de début (HH:MM) — laisser vide pour ignorer', '') || '';
   const fmt = state.defaultFormat || 15;
   const lineup = {};
   ALL_POSITIONS[fmt].forEach(p => lineup[p.num]=null);
   const match = {
-    id: Date.now(), name,
+    id: Date.now(), name, type:'match',
     date: new Date().toLocaleDateString('fr-FR'),
+    startTime: startTime.trim(),
     format: fmt, halfDuration: DEFAULT_HALF[fmt],
     lineup, entries:{}, playtime:{}, lastChangeTs:{},
   };
@@ -544,10 +573,28 @@ function createMatch() {
   state.currentMatchId = match.id;
   stopTimer(); initTimerForMatch(match);
   save(); renderMatchList();
-  document.querySelectorAll('.nav-tab')[2].click();
+  // Stay on Matches tab — do NOT switch to Compo
+}
+
+function createPause() {
+  const name = prompt('Description de la pause (ex: Pause déjeuner, Match adversaires…)', 'Pause');
+  if (!name) return;
+  const startTime = prompt('Heure de début (HH:MM) — laisser vide pour ignorer', '') || '';
+  const durMin = parseInt(prompt('Durée estimée (minutes)', '15') || '15') || 15;
+  const pause = {
+    id: Date.now(), name, type:'pause',
+    date: new Date().toLocaleDateString('fr-FR'),
+    startTime: startTime.trim(),
+    duration: durMin,
+  };
+  state.matches.push(pause);
+  save(); renderMatchList();
+  // Stay on Matches tab
 }
 
 function selectMatch(id) {
+  const item = state.matches.find(m=>m.id===id);
+  if (!item || item.type==='pause') return; // can't select a pause
   if (state.currentMatchId !== id) {
     stopTimer();
     state.currentMatchId = id;
@@ -556,42 +603,66 @@ function selectMatch(id) {
     save();
   }
   renderMatchList();
-  document.querySelectorAll('.nav-tab')[2].click();
+  document.querySelectorAll('.nav-tab')[2].click(); // go to Compo
 }
 
 function deleteMatch(id, e) {
   e.stopPropagation();
-  if (!confirm('Supprimer ce match ?')) return;
+  const item = state.matches.find(m=>m.id===id);
+  const label = item?.type==='pause' ? 'cette pause' : 'ce match';
+  if (!confirm(`Supprimer ${label} ?`)) return;
   if (state.currentMatchId===id) stopTimer();
   state.matches = state.matches.filter(m=>m.id!==id);
-  if (state.currentMatchId===id)
-    state.currentMatchId = state.matches.length ? state.matches[state.matches.length-1].id : null;
+  if (state.currentMatchId===id) {
+    const nextMatch = state.matches.find(m=>m.type!=='pause');
+    state.currentMatchId = nextMatch ? nextMatch.id : null;
+  }
   recomputeTournamentStats(); save(); renderMatchList(); renderStats();
 }
 
 function renderMatchList() {
   const div = document.getElementById('matchList');
   if (!state.matches.length) {
-    div.innerHTML=`<div class="empty-state"><div class="icon">📋</div><p>Aucun match.<br>Créez votre premier match !</p></div>`;
+    div.innerHTML=`<div class="empty-state"><div class="icon">📋</div><p>Aucun match ni pause.<br>Ajoutez un match !</p></div>`;
     return;
   }
-  div.innerHTML = state.matches.map(m=>{
+  div.innerHTML = state.matches.map((m,idx)=>{
+    if (m.type==='pause') {
+      const timeStr = m.startTime ? `<span class="time-pill" onclick="editStartTime(${m.id},event)">🕐 ${m.startTime}</span> · ` : `<span class="time-pill" onclick="editStartTime(${m.id},event)">+ heure</span> · `;
+      return `<div class="pause-item">
+        <div>
+          <div class="pause-name">⏸ ${m.name}</div>
+          <div class="pause-info">${timeStr}~${m.duration} min</div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id},event)">🗑</button>
+      </div>`;
+    }
+    // regular match
     const positions = getPositions(m);
     const filled = positions.filter(p=>m.lineup[p.num]).length;
     const isCurrent = m.id===state.currentMatchId;
     const fmtLabel = {15:'XV',10:'X',7:'VII'}[m.format||15];
-    const totalTime = Object.values(m.playtime||{}).reduce((a,b)=>a+b,0);
+    const timeStr = m.startTime ? `<span class="time-pill" onclick="editStartTime(${m.id},event)">🕐 ${m.startTime}</span> · ` : `<span class="time-pill" onclick="editStartTime(${m.id},event)">+ heure</span> · `;
     return `<div class="match-item ${isCurrent?'current':''}" onclick="selectMatch(${m.id})">
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="match-name">${m.name} <span class="format-pill">${fmtLabel}</span>${isCurrent?' <span class="match-badge">ACTIF</span>':''}</div>
-        <div class="match-info">${m.date} · ${filled}/${positions.length} postes · ⏱ ${m.halfDuration}min/mi-temps</div>
+        <div class="match-info">${timeStr}${filled}/${positions.length} postes · ⏱ ${m.halfDuration}min/mi-temps</div>
       </div>
-      <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id},event)">🗑</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id},event)" style="margin-left:8px;flex-shrink:0">🗑</button>
     </div>`;
   }).join('');
 }
 
-function getCurrentMatch() { return state.matches.find(m=>m.id===state.currentMatchId)||null; }
+function editStartTime(id, e) {
+  e.stopPropagation();
+  const item = state.matches.find(m=>m.id===id); if(!item) return;
+  const t = prompt('Heure de début (HH:MM)', item.startTime||'');
+  if (t===null) return;
+  item.startTime = t.trim();
+  save(); renderMatchList();
+}
+
+function getCurrentMatch() { const m=state.matches.find(m=>m.id===state.currentMatchId); return (m&&m.type!=='pause')?m:null; }
 
 // ════════════════════════════════════════════════
 // TIMER ENGINE
@@ -599,8 +670,10 @@ function getCurrentMatch() { return state.matches.find(m=>m.id===state.currentMa
 function initTimerForMatch(match) {
   const secs = (match.halfDuration||40)*60;
   timer.secondsLeft=secs; timer.totalSeconds=secs;
-  timer.period=1; timer.running=false; timer.playerStartTs={};
+  timer.period=1; timer.running=false; timer.overtime=false;
+  timer.playerStartTs={};
   clearInterval(timer.intervalId); timer.intervalId=null;
+  if (timer.subIntervalId) { clearInterval(timer.subIntervalId); timer.subIntervalId=null; }
 }
 
 // Mark all currently placed players as "on field"
@@ -614,49 +687,77 @@ function snapshotLineup() {
 }
 
 function startTimer() {
-  if (timer.running || timer.period===0 || timer.secondsLeft<=0) return;
+  if (timer.running) return;
+  // Allow starting even at 0 (overtime) but not when fully finished
+  if (timer.period===0) return;
   snapshotLineup();
   timer.running = true;
+  scheduleSubSuggestion(); // arm sub suggestion interval
   timer.intervalId = setInterval(()=>{
     timer.secondsLeft--;
     updateTimerDisplay();
-    if (timer.secondsLeft<=0) {
-      flushPlaytimes();
-      clearInterval(timer.intervalId); timer.intervalId=null;
-      timer.running=false;
-      if (timer.period===1) {
-        timer.period=1.5; // halftime break — waiting for whistle
-      } else {
-        timer.period=0; // match finished
-      }
+
+    // Check sub suggestion trigger
+    if (timer.subIntervalId && Date.now() >= timer.nextSubAt) {
+      clearInterval(timer.subIntervalId); timer.subIntervalId=null;
+      showSubSuggestion();
+    }
+
+    if (timer.secondsLeft <= 0 && !timer.overtime) {
+      // Enter overtime — keep running, flip flag, update display style
+      timer.overtime = true;
+      // secondsLeft goes negative — we'll display absolute value with + prefix
       updateTimerDisplay();
-      renderTimerSection();
+      // Notify but DON'T stop
+      renderTimerSection(); // refresh buttons
+    } else {
+      updateTimerDisplay();
     }
   }, 1000);
   renderTimerSection();
 }
 
+function scheduleSubSuggestion() {
+  if (timer.subIntervalId) { clearInterval(timer.subIntervalId); timer.subIntervalId=null; }
+  const intervalMin = state.subIntervalMin || 0;
+  if (intervalMin <= 0) return;
+  timer.nextSubAt = Date.now() + intervalMin * 60 * 1000;
+  // Poll every 5s to check
+  timer.subIntervalId = setInterval(()=>{
+    if (Date.now() >= timer.nextSubAt) {
+      clearInterval(timer.subIntervalId); timer.subIntervalId=null;
+      showSubSuggestion();
+    }
+  }, 5000);
+}
+
 function pauseTimer() {
   if (!timer.running) return;
   clearInterval(timer.intervalId); timer.intervalId=null;
+  if (timer.subIntervalId) { clearInterval(timer.subIntervalId); timer.subIntervalId=null; }
   timer.running=false;
-  flushPlaytimes(); snapshotLineup(); // flush then re-snapshot for next start
-  // Actually: clear snapshot so next start will reset timestamps
+  flushPlaytimes();
   timer.playerStartTs={};
   updateTimerDisplay(); renderTimerSection();
 }
 
 function stopTimer(fin) {
   clearInterval(timer.intervalId); timer.intervalId=null;
+  if (timer.subIntervalId) { clearInterval(timer.subIntervalId); timer.subIntervalId=null; }
   if (timer.running) flushPlaytimes();
   timer.running=false;
+  timer.overtime=false;
   if (fin) { timer.period=0; timer.secondsLeft=0; }
   timer.playerStartTs={};
 }
 
 function markHalftime() {
-  if (timer.period!==1 && timer.period!==1.5) return;
-  if (timer.running) { clearInterval(timer.intervalId); timer.intervalId=null; timer.running=false; flushPlaytimes(); }
+  if (timer.running) {
+    clearInterval(timer.intervalId); timer.intervalId=null;
+    if (timer.subIntervalId) { clearInterval(timer.subIntervalId); timer.subIntervalId=null; }
+    timer.running=false; flushPlaytimes();
+  }
+  timer.overtime=false;
   const match=getCurrentMatch();
   const secs=(match?(match.halfDuration||40):40)*60;
   timer.secondsLeft=secs; timer.totalSeconds=secs;
@@ -681,6 +782,14 @@ function adjustHalfDuration() {
     updateTimerDisplay();
   }
   save();
+}
+
+function adjustSubInterval() {
+  const val=parseInt(document.getElementById('subIntervalInput').value);
+  state.subIntervalMin = isNaN(val) ? 0 : Math.max(0, val);
+  save();
+  // Re-arm if running
+  if (timer.running) scheduleSubSuggestion();
 }
 
 function flushPlaytimes() {
@@ -708,20 +817,32 @@ function updateTimerDisplay() {
   const prog=document.getElementById('timerProgress');
   const block=document.getElementById('timerBlock');
   if (!digits) return;
-  const s=timer.secondsLeft;
-  digits.textContent=`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-  const cls = timer.running?'running':timer.period===0?'finished':timer.period===1.5?'halftime':'';
-  digits.className='timer-display '+(cls||'');
-  if(block) block.className='timer-block '+(cls||'');
+  const s = timer.secondsLeft;
+  if (timer.overtime) {
+    // Display overtime as +MM:SS in red
+    const ot = Math.abs(s);
+    digits.textContent=`+${String(Math.floor(ot/60)).padStart(2,'0')}:${String(ot%60).padStart(2,'0')}`;
+    digits.className='timer-display overtime';
+    if(block) block.className='timer-block overtime';
+  } else {
+    digits.textContent=`${String(Math.floor(Math.max(s,0)/60)).padStart(2,'0')}:${String(Math.max(s,0)%60).padStart(2,'0')}`;
+    const cls = timer.running?'running':timer.period===0?'finished':timer.period===1.5?'halftime':'';
+    digits.className='timer-display '+(cls||'');
+    if(block) block.className='timer-block '+(cls||'');
+  }
   if (period) {
     if (timer.period===0) period.textContent='🏁 MATCH TERMINÉ';
     else if (timer.period===1.5) period.textContent='☕ MI-TEMPS — Prêt pour la 2ème mi-temps ?';
-    else period.textContent=(timer.period===1?'1ère':'2ème')+' mi-temps';
+    else {
+      const halfLabel=(timer.period===1?'1ère':'2ème')+' mi-temps';
+      period.textContent = timer.overtime ? `⏱ ${halfLabel} — TEMPS ADDITIONNEL` : halfLabel;
+    }
   }
   if (prog && timer.totalSeconds>0) {
-    const pct=Math.round(((timer.totalSeconds-timer.secondsLeft)/timer.totalSeconds)*100);
+    // Progress bar: 100% at 0, then stays full during overtime
+    const pct = timer.overtime ? 100 : Math.round(((timer.totalSeconds-s)/timer.totalSeconds)*100);
     prog.style.width=pct+'%';
-    prog.style.background=timer.period===0?'var(--red)':timer.running?'var(--green)':'var(--accent)';
+    prog.style.background=timer.overtime?'#ff6b6b':timer.period===0?'var(--red)':timer.running?'var(--green)':'var(--accent)';
   }
 }
 
@@ -733,25 +854,42 @@ function renderTimerSection() {
   const cls=timer.running?'running':timer.period===0?'finished':timer.period===1.5?'halftime':'';
   const pct=timer.totalSeconds>0?Math.round(((timer.totalSeconds-s)/timer.totalSeconds)*100):0;
 
-  div.innerHTML=`<div class="timer-block ${cls}" id="timerBlock">
-    <div class="timer-period" id="timerPeriod">${
-      timer.period===0?'🏁 MATCH TERMINÉ':
-      timer.period===1.5?'☕ MI-TEMPS — Prêt pour la 2ème mi-temps ?':
-      (timer.period===1?'1ère':'2ème')+' mi-temps'
-    }</div>
-    <div class="timer-display ${cls}" id="timerDigits">${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}</div>
-    <div class="timer-progress"><div id="timerProgress" class="timer-progress-fill" style="width:${pct}%;background:${timer.period===0?'var(--red)':timer.running?'var(--green)':'var(--accent)'}"></div></div>
+  const overtimeCls = timer.overtime ? 'overtime' : cls;
+  const periodLabel = timer.period===0 ? '🏁 MATCH TERMINÉ'
+    : timer.period===1.5 ? '☕ MI-TEMPS — Prêt pour la 2ème mi-temps ?'
+    : (timer.period===1?'1ère':'2ème')+' mi-temps'+(timer.overtime?' — TEMPS ADDITIONNEL':'');
+  const dispStr = timer.overtime
+    ? `+${String(Math.floor(Math.abs(s)/60)).padStart(2,'0')}:${String(Math.abs(s)%60).padStart(2,'0')}`
+    : `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  const progBg = timer.overtime ? '#ff6b6b' : (timer.period===0?'var(--red)':timer.running?'var(--green)':'var(--accent)');
+  const progPct = timer.overtime ? 100 : pct;
+  const halfDur = match ? (match.halfDuration||40) : 40;
+  const subIntVal = state.subIntervalMin || Math.round(halfDur/2);
+
+  div.innerHTML=`<div class="timer-block ${overtimeCls}" id="timerBlock">
+    <div class="timer-period" id="timerPeriod">${periodLabel}</div>
+    <div class="timer-display ${overtimeCls}" id="timerDigits">${dispStr}</div>
+    <div class="timer-progress"><div id="timerProgress" class="timer-progress-fill" style="width:${progPct}%;background:${progBg}"></div></div>
     <div class="timer-controls">
-      ${!timer.running && timer.period!==0 && timer.period!==1.5 ? `<button class="tbtn tbtn-start" onclick="startTimer()">▶ Start</button>` : ''}
-      ${timer.running ? `<button class="tbtn tbtn-pause" onclick="pauseTimer()">⏸ Pause</button>` : ''}
-      ${timer.period===1.5 ? `<button class="tbtn tbtn-start" onclick="startTimer()">▶ 2ème mi-temps</button>` : ''}
-      ${(timer.period===1||timer.period===1.5||timer.running) && timer.period!==0 ? `<button class="tbtn tbtn-half" onclick="markHalftime()">🔔 Mi-Temps</button>` : ''}
-      ${timer.period===0 || timer.period===2 || timer.period===1.5 ? `<button class="tbtn tbtn-reset" onclick="resetTimerFull()">↺ Reset</button>` : ''}
+      ${!timer.running && timer.period!==0 && timer.period!==1.5 ? '<button class="tbtn tbtn-start" onclick="startTimer()">▶ Start</button>' : ''}
+      ${timer.running ? '<button class="tbtn tbtn-pause" onclick="pauseTimer()">⏸ Pause</button>' : ''}
+      ${timer.period===1.5 ? '<button class="tbtn tbtn-start" onclick="startTimer()">▶ 2ème mi-temps</button>' : ''}
+      ${timer.overtime && timer.running ? '<button class="tbtn tbtn-half" style="background:#ff6b6b;color:white" onclick="markHalftime()">🔔 Siffler</button>' : ''}
+      ${!timer.overtime && (timer.period===1||timer.period===1.5||timer.running) && timer.period!==0 ? '<button class="tbtn tbtn-half" onclick="markHalftime()">🔔 Mi-Temps</button>' : ''}
+      ${timer.period===0 || timer.period===2 || timer.period===1.5 ? '<button class="tbtn tbtn-reset" onclick="resetTimerFull()">↺ Reset</button>' : ''}
     </div>
-    <div class="timer-settings">
-      <label>Min / mi-temps :</label>
-      <input type="number" id="halfDurInput" value="${match?(match.halfDuration||40):40}" min="1" max="99" onchange="adjustHalfDuration()">
+    <div class="timer-settings" style="flex-wrap:wrap;gap:12px">
+      <span style="display:flex;align-items:center;gap:6px">
+        <label style="margin:0;white-space:nowrap">Min/mi-temps:</label>
+        <input type="number" id="halfDurInput" value="${halfDur}" min="1" max="99" onchange="adjustHalfDuration()" style="width:52px;margin:0;padding:5px;text-align:center">
+      </span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <label style="margin:0;white-space:nowrap" title="0 = désactivé">Propos. chgt (min):</label>
+        <input type="number" id="subIntervalInput" value="${subIntVal}" min="0" max="99" onchange="adjustSubInterval()" style="width:52px;margin:0;padding:5px;text-align:center" title="0 = désactivé">
+      </span>
     </div>
+    ${timer.period===1.5 || (!timer.running && timer.period===1 && !timer.overtime) ? '<div style="margin-top:10px"><button class="btn btn-outline btn-full" style="font-size:.8rem" onclick="autoFillHalfTime()">🔁 Compo 2ème mi-temps</button></div>' : ''}
+    <div id="subSuggestionBox"></div>
   </div>`;
 }
 
@@ -1365,6 +1503,201 @@ function autoFillLineup() {
   positions.forEach(pos => { if (newLineup[pos.num]) onPlayerPlaced(newLineup[pos.num]); });
 
   save(); renderCompo(); renderBench();
+}
+
+
+// ════════════════════════════════════════════════
+// HALFTIME AUTO COMPOSITION
+// ════════════════════════════════════════════════
+function autoFillHalfTime() {
+  const match = getCurrentMatch(); if (!match) return;
+  const positions = getPositions(match);
+  const available = state.players.filter(p => isAvailable(p.name));
+
+  // Players to KEEP: currently on field AND have been there <= 60s
+  const keepPlayers = new Set();
+  positions.forEach(pos => {
+    const p = match.lineup[pos.num]; if (!p) return;
+    const liveTime = getLiveExtra(p);
+    const savedTime = match.playtime[p] || 0;
+    // Keep if their time in current stint is ≤60s (just entered)
+    if (liveTime <= 60 && savedTime <= 60) keepPlayers.add(p);
+  });
+
+  // Sort available players by tournament playtime ascending
+  const sorted = [...available].sort((a,b)=>
+    (state.tournamentPlaytime[a.name]||0) - (state.tournamentPlaytime[b.name]||0)
+  );
+
+  const newLineup = {};
+  positions.forEach(p => newLineup[p.num] = null);
+  const assigned = new Set();
+
+  // Lock kept players to their current positions
+  positions.forEach(pos => {
+    const p = match.lineup[pos.num];
+    if (p && keepPlayers.has(p)) {
+      newLineup[pos.num] = p;
+      assigned.add(p);
+    }
+  });
+
+  // First pass: fill remaining with players at their natural position (least played)
+  positions.forEach(pos => {
+    if (newLineup[pos.num]) return;
+    const candidate = sorted.find(p => !assigned.has(p.name) && p.positions.includes(pos.type));
+    if (candidate) { newLineup[pos.num]=candidate.name; assigned.add(candidate.name); }
+  });
+
+  // Second pass: fill remaining with any player, sorted by pos-specific time then total
+  positions.forEach(pos => {
+    if (newLineup[pos.num]) return;
+    const unassigned = sorted.filter(p => !assigned.has(p.name));
+    if (!unassigned.length) return;
+    unassigned.sort((a,b) => {
+      const aPT = ((state.positionPlaytime||{})[a.name]||{})[pos.type]||0;
+      const bPT = ((state.positionPlaytime||{})[b.name]||{})[pos.type]||0;
+      if (aPT!==bPT) return aPT-bPT;
+      return (state.tournamentPlaytime[a.name]||0)-(state.tournamentPlaytime[b.name]||0);
+    });
+    newLineup[pos.num]=unassigned[0].name; assigned.add(unassigned[0].name);
+  });
+
+  const keptList = [...keepPlayers].join(', ') || 'aucun';
+  const filledCount = Object.values(newLineup).filter(Boolean).length;
+  if (!confirm(`Compo 2ème mi-temps :
+• ${keepPlayers.size} joueur(s) conservé(s) (≤1 min en jeu) : ${keptList}
+• ${filledCount} postes remplis au total
+
+Appliquer ?`)) return;
+
+  // Flush all players not being kept
+  positions.forEach(pos => {
+    const p = match.lineup[pos.num];
+    if (p && !keepPlayers.has(p)) onPlayerRemoved(p, pos.type);
+  });
+
+  match.lineup = newLineup;
+  match.lastChangeTs = {};
+  positions.forEach(pos => {
+    if (newLineup[pos.num] && !keepPlayers.has(newLineup[pos.num]))
+      match.lastChangeTs[pos.num] = Date.now();
+  });
+
+  positions.forEach(pos => {
+    const p = newLineup[pos.num]; if (!p) return;
+    if (!keepPlayers.has(p)) onPlayerPlaced(p);
+  });
+
+  save(); renderCompo(); renderBench();
+}
+
+// ════════════════════════════════════════════════
+// SUB SUGGESTION ENGINE
+// ════════════════════════════════════════════════
+function showSubSuggestion() {
+  const match = getCurrentMatch(); if (!match) return;
+  const positions = getPositions(match);
+  const available = state.players.filter(p => isAvailable(p.name));
+  const onFieldPlayers = new Set(positions.map(p=>match.lineup[p.num]).filter(Boolean));
+  const benchPlayers = available.filter(p => !onFieldPlayers.has(p.name))
+    .sort((a,b) => (state.tournamentPlaytime[a.name]||0)-(state.tournamentPlaytime[b.name]||0));
+
+  // We want to suggest changes for half the bench (rounded up), min 1
+  const nSugg = Math.max(1, Math.ceil(benchPlayers.length / 2));
+  const incoming = benchPlayers.slice(0, nSugg); // least played on bench
+
+  // For each incoming player, find best outgoing player (most played on field, at compat pos)
+  const suggestions = [];
+  const usedOutgoing = new Set();
+  const positionsCopy = [...positions];
+
+  incoming.forEach(benchPlayer => {
+    const compatTypes = benchPlayer.positions;
+    // Try natural positions first
+    let bestPos = null, bestOut = null, bestOutTime = -1;
+
+    // Among field positions compatible with this bench player
+    positionsCopy.forEach(pos => {
+      const onFieldPlayer = match.lineup[pos.num];
+      if (!onFieldPlayer || usedOutgoing.has(onFieldPlayer)) return;
+      const isNatural = compatTypes.includes(pos.type);
+      if (!isNatural) return;
+      const t = (state.tournamentPlaytime[onFieldPlayer]||0) + getLiveExtra(onFieldPlayer);
+      if (t > bestOutTime) { bestOutTime=t; bestOut=onFieldPlayer; bestPos=pos; }
+    });
+
+    // If no natural match found, try any position
+    if (!bestPos) {
+      positionsCopy.forEach(pos => {
+        const onFieldPlayer = match.lineup[pos.num];
+        if (!onFieldPlayer || usedOutgoing.has(onFieldPlayer)) return;
+        const t = (state.tournamentPlaytime[onFieldPlayer]||0) + getLiveExtra(onFieldPlayer);
+        if (t > bestOutTime) { bestOutTime=t; bestOut=onFieldPlayer; bestPos=pos; }
+      });
+    }
+
+    if (bestPos && bestOut) {
+      const isNatural = benchPlayer.positions.includes(bestPos.type);
+      suggestions.push({ in: benchPlayer.name, out: bestOut, pos: bestPos, natural: isNatural });
+      usedOutgoing.add(bestOut);
+    }
+  });
+
+  if (!suggestions.length) return;
+
+  // Show in the sub suggestion box inside timer block
+  const box = document.getElementById('subSuggestionBox');
+  if (!box) return;
+
+  const rows = suggestions.map(s => `
+    <div class="suggestion-row">
+      <div>
+        <div><span class="sugg-out">↓ ${s.out}</span><span class="sugg-arrow">→</span><span class="sugg-in">↑ ${s.in}</span></div>
+        <div class="sugg-pos">#${s.pos.num} ${s.pos.name}${s.natural?'':' <span style="color:var(--accent);font-size:.62rem">(dépannage)</span>'}</div>
+      </div>
+      <button onclick="applySubSuggestion('${escapeJs(s.in)}','${escapeJs(s.out)}',${s.pos.num})"
+        style="background:var(--blue);border:none;color:white;border-radius:8px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer">
+        ✓ Valider
+      </button>
+    </div>`).join('');
+
+  box.innerHTML = `<div class="sub-suggestion" style="margin-top:12px">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.82rem;letter-spacing:1px;text-transform:uppercase;color:var(--blue);margin-bottom:8px">
+      💡 Propositions de changements
+    </div>
+    ${rows}
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="dismissSubSuggestion()" style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer">
+        Ignorer
+      </button>
+      <button onclick="rescheduleSubSuggestion()" style="flex:1;background:var(--bg3);border:1px solid var(--blue);color:var(--blue);border-radius:8px;padding:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer">
+        ↺ Dans ${state.subIntervalMin||5} min
+      </button>
+    </div>
+  </div>`;
+}
+
+function applySubSuggestion(inPlayer, outPlayer, posNum) {
+  const match = getCurrentMatch(); if (!match) return;
+  const posType = getPositions(match).find(p=>p.num===posNum)?.type;
+  onPlayerRemoved(outPlayer, posType);
+  match.entries[inPlayer]=(match.entries[inPlayer]||0)+1;
+  state.tournamentEntries[inPlayer]=(state.tournamentEntries[inPlayer]||0)+1;
+  match.lineup[posNum]=inPlayer;
+  match.lastChangeTs[posNum]=Date.now();
+  onPlayerPlaced(inPlayer);
+  save(); renderCompo(); renderBench(); dismissSubSuggestion();
+}
+
+function dismissSubSuggestion() {
+  const box = document.getElementById('subSuggestionBox');
+  if (box) box.innerHTML='';
+}
+
+function rescheduleSubSuggestion() {
+  dismissSubSuggestion();
+  scheduleSubSuggestion();
 }
 
 // ════════════════════════════════════════════════
