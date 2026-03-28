@@ -181,6 +181,16 @@ label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.78re
 @keyframes overtimePulse{0%,100%{opacity:1}50%{opacity:.6}}
 .timer-block.overtime{border-color:#ff6b6b!important}
 
+
+/* DRAG & DROP reorder */
+.drag-handle{cursor:grab;color:var(--muted);font-size:1.1rem;padding:0 8px;touch-action:none;user-select:none;flex-shrink:0}
+.drag-handle:active{cursor:grabbing}
+.drag-handle.active-drag{cursor:grabbing}
+.drag-over-top{border-top:2px solid var(--accent)!important}
+.drag-over-bottom{border-bottom:2px solid var(--accent)!important}
+.dragging-item{opacity:.4}
+.sort-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;touch-action:manipulation}
+.sort-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(232,160,32,.08)}
 /* PAUSE item in match list */
 .pause-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border:1px dashed var(--border);border-radius:10px;margin-bottom:8px;opacity:.85}
 .pause-name{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.95rem;color:var(--muted)}
@@ -271,6 +281,7 @@ label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.78re
   <div class="flex" style="margin-bottom:12px">
     <button class="btn btn-primary flex-1" onclick="createMatch()">+ Match</button>
     <button class="btn btn-outline" onclick="createPause()" style="white-space:nowrap">⏸ Pause</button>
+    <button class="sort-btn" id="sortToggle" onclick="toggleSortMode()">⇅ Trier</button>
   </div>
   <div id="matchList"></div>
 </div>
@@ -383,6 +394,7 @@ let state = {
 
 // BENCH state
 let benchSelectedPlayer = null;
+let sortMode = false; // drag-to-reorder mode for match list
 
 // TIMER (in-memory, not persisted)
 let timer = {
@@ -562,11 +574,14 @@ function createMatch() {
   const fmt = state.defaultFormat || 15;
   const lineup = {};
   ALL_POSITIONS[fmt].forEach(p => lineup[p.num]=null);
+  // Inherit halfDuration from the last match in the list (if any)
+  const prevMatch = [...state.matches].reverse().find(m => m.type === 'match');
+  const halfDur = prevMatch ? (prevMatch.halfDuration || DEFAULT_HALF[fmt]) : DEFAULT_HALF[fmt];
   const match = {
     id: Date.now(), name, type:'match',
     date: new Date().toLocaleDateString('fr-FR'),
     startTime: startTime.trim(),
-    format: fmt, halfDuration: DEFAULT_HALF[fmt],
+    format: fmt, halfDuration: halfDur,
     lineup, entries:{}, playtime:{}, lastChangeTs:{},
   };
   state.matches.push(match);
@@ -622,35 +637,107 @@ function deleteMatch(id, e) {
 
 function renderMatchList() {
   const div = document.getElementById('matchList');
+  // update sort button appearance
+  const sortBtn = document.getElementById('sortToggle');
+  if (sortBtn) sortBtn.classList.toggle('active', sortMode);
+
   if (!state.matches.length) {
     div.innerHTML=`<div class="empty-state"><div class="icon">📋</div><p>Aucun match ni pause.<br>Ajoutez un match !</p></div>`;
     return;
   }
   div.innerHTML = state.matches.map((m,idx)=>{
+    const handle = sortMode ? `<span class="drag-handle" draggable="true"
+      ondragstart="onDragStart(event,${idx})"
+      ondragend="onDragEnd(event)"
+      >☰</span>` : '';
     if (m.type==='pause') {
       const timeStr = m.startTime ? `<span class="time-pill" onclick="editStartTime(${m.id},event)">🕐 ${m.startTime}</span> · ` : `<span class="time-pill" onclick="editStartTime(${m.id},event)">+ heure</span> · `;
-      return `<div class="pause-item">
-        <div>
+      return `<div class="pause-item" data-idx="${idx}"
+        ondragover="onDragOver(event,${idx})"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,${idx})">
+        ${handle}
+        <div style="flex:1">
           <div class="pause-name">⏸ ${m.name}</div>
           <div class="pause-info">${timeStr}~${m.duration} min</div>
         </div>
-        <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id},event)">🗑</button>
+        ${sortMode ? '' : `<button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id},event)">🗑</button>`}
       </div>`;
     }
-    // regular match
     const positions = getPositions(m);
     const filled = positions.filter(p=>m.lineup[p.num]).length;
     const isCurrent = m.id===state.currentMatchId;
     const fmtLabel = {15:'XV',10:'X',7:'VII'}[m.format||15];
     const timeStr = m.startTime ? `<span class="time-pill" onclick="editStartTime(${m.id},event)">🕐 ${m.startTime}</span> · ` : `<span class="time-pill" onclick="editStartTime(${m.id},event)">+ heure</span> · `;
-    return `<div class="match-item ${isCurrent?'current':''}" onclick="selectMatch(${m.id})">
+    return `<div class="match-item ${isCurrent?'current':''}" data-idx="${idx}"
+      onclick="${sortMode?'':'selectMatch('+m.id+')'}"
+      ondragover="onDragOver(event,${idx})"
+      ondragleave="onDragLeave(event)"
+      ondrop="onDrop(event,${idx})">
+      ${handle}
       <div style="flex:1;min-width:0">
         <div class="match-name">${m.name} <span class="format-pill">${fmtLabel}</span>${isCurrent?' <span class="match-badge">ACTIF</span>':''}</div>
         <div class="match-info">${timeStr}${filled}/${positions.length} postes · ⏱ ${m.halfDuration}min/mi-temps</div>
       </div>
-      <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id},event)" style="margin-left:8px;flex-shrink:0">🗑</button>
+      ${sortMode ? '' : `<button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id},event)" style="margin-left:8px;flex-shrink:0">🗑</button>`}
     </div>`;
   }).join('');
+}
+
+function toggleSortMode() {
+  sortMode = !sortMode;
+  renderMatchList();
+}
+
+// Drag state
+let dragSrcIdx = null;
+
+function onDragStart(e, idx) {
+  dragSrcIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.classList.add('active-drag');
+  // mark item as dragging
+  setTimeout(() => {
+    const items = document.querySelectorAll('#matchList > div');
+    if (items[idx]) items[idx].classList.add('dragging-item');
+  }, 0);
+}
+
+function onDragEnd(e) {
+  document.querySelectorAll('#matchList > div').forEach(el => {
+    el.classList.remove('dragging-item','drag-over-top','drag-over-bottom');
+  });
+  dragSrcIdx = null;
+}
+
+function onDragOver(e, idx) {
+  if (dragSrcIdx === null || dragSrcIdx === idx) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  // show indicator above or below
+  const rect = e.currentTarget.getBoundingClientRect();
+  const mid = rect.top + rect.height/2;
+  document.querySelectorAll('#matchList > div').forEach(el => el.classList.remove('drag-over-top','drag-over-bottom'));
+  e.currentTarget.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over-top','drag-over-bottom');
+}
+
+function onDrop(e, targetIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over-top','drag-over-bottom');
+  if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const insertAfter = e.clientY >= rect.top + rect.height/2;
+  const item = state.matches.splice(dragSrcIdx, 1)[0];
+  let insertAt = targetIdx;
+  if (dragSrcIdx < targetIdx) insertAt = insertAfter ? targetIdx : targetIdx - 1;
+  else insertAt = insertAfter ? targetIdx + 1 : targetIdx;
+  state.matches.splice(Math.max(0, Math.min(insertAt, state.matches.length)), 0, item);
+  dragSrcIdx = null;
+  save(); renderMatchList();
 }
 
 function editStartTime(id, e) {
@@ -781,7 +868,13 @@ function adjustHalfDuration() {
     timer.secondsLeft=val*60; timer.totalSeconds=val*60;
     updateTimerDisplay();
   }
+  // Auto-update sub interval to half of new duration
+  const halfVal = Math.round(val/2);
+  state.subIntervalMin = halfVal;
+  const subInput = document.getElementById('subIntervalInput');
+  if (subInput) subInput.value = halfVal;
   save();
+  if (timer.running) scheduleSubSuggestion();
 }
 
 function adjustSubInterval() {
@@ -875,7 +968,8 @@ function renderTimerSection() {
       ${timer.running ? '<button class="tbtn tbtn-pause" onclick="pauseTimer()">⏸ Pause</button>' : ''}
       ${timer.period===1.5 ? '<button class="tbtn tbtn-start" onclick="startTimer()">▶ 2ème mi-temps</button>' : ''}
       ${timer.overtime && timer.running ? '<button class="tbtn tbtn-half" style="background:#ff6b6b;color:white" onclick="markHalftime()">🔔 Siffler</button>' : ''}
-      ${!timer.overtime && (timer.period===1||timer.period===1.5||timer.running) && timer.period!==0 ? '<button class="tbtn tbtn-half" onclick="markHalftime()">🔔 Mi-Temps</button>' : ''}
+      ${!timer.overtime && timer.period===1 && timer.running ? '<button class="tbtn tbtn-half" onclick="markHalftime()">🔔 Mi-Temps</button>' : ''}
+      ${!timer.overtime && timer.period===2 && (timer.running || !timer.running) ? '<button class="tbtn tbtn-half" onclick="markHalftime()">🏁 Fin de match</button>' : ''}
       ${timer.period===0 || timer.period===2 || timer.period===1.5 ? '<button class="tbtn tbtn-reset" onclick="resetTimerFull()">↺ Reset</button>' : ''}
     </div>
     <div class="timer-settings" style="flex-wrap:wrap;gap:12px">
@@ -888,7 +982,7 @@ function renderTimerSection() {
         <input type="number" id="subIntervalInput" value="${subIntVal}" min="0" max="99" onchange="adjustSubInterval()" style="width:52px;margin:0;padding:5px;text-align:center" title="0 = désactivé">
       </span>
     </div>
-    ${timer.period===1.5 || (!timer.running && timer.period===1 && !timer.overtime) ? '<div style="margin-top:10px"><button class="btn btn-outline btn-full" style="font-size:.8rem" onclick="autoFillHalfTime()">🔁 Compo 2ème mi-temps</button></div>' : ''}
+    ${timer.period===1.5 ? '<div style="margin-top:10px"><button class="btn btn-outline btn-full" style="font-size:.8rem" onclick="autoFillHalfTime()">🔁 Compo 2ème mi-temps</button></div>' : ''}
     <div id="subSuggestionBox"></div>
   </div>`;
 }
@@ -1650,35 +1744,35 @@ function showSubSuggestion() {
   const box = document.getElementById('subSuggestionBox');
   if (!box) return;
 
-  const rows = suggestions.map(s => `
-    <div class="suggestion-row">
-      <div>
-        <div><span class="sugg-out">↓ ${s.out}</span><span class="sugg-arrow">→</span><span class="sugg-in">↑ ${s.in}</span></div>
-        <div class="sugg-pos">#${s.pos.num} ${s.pos.name}${s.natural?'':' <span style="color:var(--accent);font-size:.62rem">(dépannage)</span>'}</div>
-      </div>
-      <button onclick="applySubSuggestion('${escapeJs(s.in)}','${escapeJs(s.out)}',${s.pos.num})"
-        style="background:var(--blue);border:none;color:white;border-radius:8px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer">
-        ✓ Valider
-      </button>
-    </div>`).join('');
+  // Build rows HTML
+  const defaultNext = state.subIntervalMin || 5;
+  let rowsHtml = '';
+  suggestions.forEach((s, i) => {
+    const natural = s.natural ? '' : ' <span style="color:var(--accent);font-size:.62rem">(dépannage)</span>';
+    rowsHtml += '<div class="suggestion-row" id="sugg_row_' + i + '">'
+      + '<div style="flex:1">'
+      + '<div><span class="sugg-out">↓ ' + s.out + '</span><span class="sugg-arrow">→</span><span class="sugg-in">↑ ' + s.in + '</span></div>'
+      + '<div class="sugg-pos">#' + s.pos.num + ' ' + s.pos.name + natural + '</div>'
+      + '</div>'
+      + '<button id="sugg_btn_' + i + '" onclick="applySubSuggestion(' + JSON.stringify(s.in) + ',' + JSON.stringify(s.out) + ',' + s.pos.num + ',' + i + ')" '
+      + 'style="background:var(--blue);border:none;color:white;border-radius:8px;padding:6px 10px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;flex-shrink:0">'
+      + '✓ Valider</button>'
+      + '</div>';
+  });
 
-  box.innerHTML = `<div class="sub-suggestion" style="margin-top:12px">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.82rem;letter-spacing:1px;text-transform:uppercase;color:var(--blue);margin-bottom:8px">
-      💡 Propositions de changements
-    </div>
-    ${rows}
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button onclick="dismissSubSuggestion()" style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer">
-        Ignorer
-      </button>
-      <button onclick="rescheduleSubSuggestion()" style="flex:1;background:var(--bg3);border:1px solid var(--blue);color:var(--blue);border-radius:8px;padding:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer">
-        ↺ Dans ${state.subIntervalMin||5} min
-      </button>
-    </div>
-  </div>`;
+  box.innerHTML = '<div class="sub-suggestion" style="margin-top:12px">'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:.82rem;letter-spacing:1px;text-transform:uppercase;color:var(--blue);margin-bottom:8px">💡 Propositions de changements</div>'
+    + '<div id="sugg_rows">' + rowsHtml + '</div>'
+    + '<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">'
+    + '<div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">Prochaine proposition dans (min) :</div>'
+    + '<div style="display:flex;gap:8px;align-items:center">'
+    + '<input type="number" id="nextSubInput" value="' + defaultNext + '" min="0" max="99" '
+    + 'style="width:58px;margin:0;padding:6px;text-align:center;font-size:.9rem;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text)">'
+    + '<button onclick="closeSubSuggestion()" style="flex:1;background:var(--accent);border:none;color:#0a1628;border-radius:8px;padding:8px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer">✕ Fermer</button>'
+    + '</div></div></div>';
 }
 
-function applySubSuggestion(inPlayer, outPlayer, posNum) {
+function applySubSuggestion(inPlayer, outPlayer, posNum, rowIdx) {
   const match = getCurrentMatch(); if (!match) return;
   const posType = getPositions(match).find(p=>p.num===posNum)?.type;
   onPlayerRemoved(outPlayer, posType);
@@ -1687,12 +1781,39 @@ function applySubSuggestion(inPlayer, outPlayer, posNum) {
   match.lineup[posNum]=inPlayer;
   match.lastChangeTs[posNum]=Date.now();
   onPlayerPlaced(inPlayer);
-  save(); renderCompo(); renderBench(); dismissSubSuggestion();
+  save(); renderCompo(); renderBench();
+  // Mark the row as applied without closing the panel
+  const btn = document.getElementById('sugg_btn_'+rowIdx);
+  const row = document.getElementById('sugg_row_'+rowIdx);
+  if (btn) { btn.textContent='✅ Fait'; btn.disabled=true; btn.style.background='var(--green)'; }
+  if (row) row.style.opacity='0.5';
 }
 
 function dismissSubSuggestion() {
   const box = document.getElementById('subSuggestionBox');
   if (box) box.innerHTML='';
+}
+
+function closeSubSuggestion() {
+  // Read the next interval from the panel input
+  const input = document.getElementById('nextSubInput');
+  if (input) {
+    const val = parseInt(input.value);
+    if (!isNaN(val) && val > 0) {
+      // Only schedule if val minutes < time remaining in current half
+      const remainingMin = Math.max(0, timer.secondsLeft) / 60;
+      if (val < remainingMin) {
+        state.subIntervalMin = val;
+        const si = document.getElementById('subIntervalInput');
+        if (si) si.value = val;
+        save();
+        scheduleSubSuggestion();
+      }
+      // If val >= remaining time: don't schedule (ignore silently)
+    }
+    // val === 0: don't reschedule
+  }
+  dismissSubSuggestion();
 }
 
 function rescheduleSubSuggestion() {

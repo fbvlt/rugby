@@ -1,0 +1,757 @@
+{
+  "gsheetUrl": "https://docs.google.com/spreadsheets/d/1hbaYqiT59c6fPs6nkxFoIHrRvC8az7n-YLjXFmdn7Lw/edit?usp=drivesdk",
+  "tournamentName": "Colomiers ",
+  "defaultFormat": 10,
+  "players": [
+    {
+      "name": "Asser",
+      "positions": [
+        "pilier"
+      ]
+    },
+    {
+      "name": "Kaan-Emir",
+      "positions": [
+        "pilier"
+      ]
+    },
+    {
+      "name": "Thimothée",
+      "positions": [
+        "pilier"
+      ]
+    },
+    {
+      "name": "Jean-Simon",
+      "positions": [
+        "pilier"
+      ]
+    },
+    {
+      "name": "Baptiste C",
+      "positions": [
+        "pilier",
+        "flanker"
+      ]
+    },
+    {
+      "name": "Lucas",
+      "positions": [
+        "talonneur",
+        "ailier"
+      ]
+    },
+    {
+      "name": "Clément",
+      "positions": [
+        "talonneur",
+        "flanker"
+      ]
+    },
+    {
+      "name": "Antonin",
+      "positions": [
+        "flanker",
+        "talonneur"
+      ]
+    },
+    {
+      "name": "Arthur F",
+      "positions": [
+        "flanker"
+      ]
+    },
+    {
+      "name": "Numa",
+      "positions": [
+        "flanker"
+      ]
+    },
+    {
+      "name": "Matheo",
+      "positions": [
+        "demi de melee"
+      ]
+    },
+    {
+      "name": "Anoki",
+      "positions": [
+        "demi de melee"
+      ]
+    },
+    {
+      "name": "Ian",
+      "positions": [
+        "demi d'ouverture"
+      ]
+    },
+    {
+      "name": "Leo",
+      "positions": [
+        "ailier",
+        "centre",
+        "demi d'ouverture"
+      ]
+    },
+    {
+      "name": "Augustin",
+      "positions": [
+        "centre",
+        "demi d'ouverture"
+      ]
+    },
+    {
+      "name": "Ugo C",
+      "positions": [
+        "centre"
+      ]
+    },
+    {
+      "name": "Aaron",
+      "positions": [
+        "ailier",
+        "centre"
+      ]
+    },
+    {
+      "name": "Baptiste G",
+      "positions": [
+        "pilier",
+        "flanker"
+      ]
+    },
+    {
+      "name": "Paul",
+      "positions": [
+        "pilier"
+      ]
+    },
+    {
+      "name": "Guillem",
+      "positions": [
+        "pilier"
+      ]
+    },
+    {
+      "name": "Anakin",
+      "positions": [
+        "pilier"
+      ]
+    },
+    {
+      "name": "Marceau",
+      "positions": [
+        "talonneur",
+        "flanker"
+      ]
+    },
+    {
+      "name": "Romain",
+      "positions": [
+        "talonneur"
+      ]
+    },
+    {
+      "name": "Arthur A",
+      "positions": [
+        "flanker"
+      ]
+    },
+    {
+      "name": "Thomas",
+      "positions": [
+        "flanker"
+      ]
+    },
+    {
+      "name": "Robin",
+      "positions": [
+        "demi de melee"
+      ]
+    },
+    {
+      "name": "Sacha",
+      "positions": [
+        "demi de melee"
+      ]
+    },
+    {
+      "name": "Hugo",
+      "positions": [
+        "demi d'ouverture"
+      ]
+    },
+    {
+      "name": "Mathis",
+      "positions": [
+        "ailier",
+        "demi d'ouverture",
+        "centre"
+      ]
+    },
+    {
+      "name": "Andrea",
+      "positions": [
+        "demi de melee",
+        "ailier"
+      ]
+    },
+    {
+      "name": "Maxence",
+      "positions": [
+        "ailier",
+        "centre"
+      ]
+    },
+    {
+      "name": "Marius",
+      "positions": [
+        "ailier"
+      ]
+    },
+    {
+      "name": "Noé",
+      "positions": [
+        "centre"
+      ]
+    },
+    {
+      "name": "Valère",
+      "positions": [
+        "centre",
+        "flanker"
+      ]
+    },
+    {
+      "name": "Gaby",
+      "positions": [
+        "ailier",
+        "demi de melee"
+      ]
+    }
+  ],
+  "matches": [
+    {
+      "id": 1774081178661,
+      "name": "Colomiers ",
+      "date": "21/03/2026",
+      "format": 10,
+      "halfDuration": 7,
+      "lineup": {
+        "1": "Aaron",
+        "2": "Valère",
+        "3": "Numa",
+        "4": "Baptiste C",
+        "5": "Jean-Simon",
+        "6": "Antonin",
+        "7": "Augustin",
+        "8": "Arthur F",
+        "9": "Lucas",
+        "10": "Leo"
+      },
+      "entries": {
+        "Clément": 1,
+        "Jean-Simon": 2,
+        "Antonin": 4,
+        "Anoki": 1,
+        "Augustin": 2,
+        "Arthur F": 1,
+        "Aaron": 2,
+        "Baptiste C": 2,
+        "Ian": 3,
+        "Lucas": 2,
+        "Thimothée": 2,
+        "Numa": 1,
+        "Gaby": 1,
+        "Valère": 3,
+        "Leo": 3
+      },
+      "playtime": {
+        "Jean-Simon": 30,
+        "Antonin": 514,
+        "Ian": 402,
+        "Arthur F": 698,
+        "Baptiste C": 587,
+        "Augustin": 396,
+        "Clément": 214,
+        "Aaron": 492,
+        "Anoki": 626,
+        "Lucas": 467,
+        "Thimothée": 322,
+        "Numa": 646,
+        "Gaby": 419,
+        "Valère": 394,
+        "Leo": 411
+      },
+      "lastChangeTs": {
+        "1": 1774082943860,
+        "2": 1774083101042,
+        "3": 1774082268695,
+        "4": 1774082697269,
+        "5": 1774083166188,
+        "6": 1774083106014,
+        "7": 1774083126050,
+        "8": 1774082337262,
+        "9": 1774082969093,
+        "10": 1774083126050
+      },
+      "positionPlaytime": {
+        "Jean-Simon": {
+          "pilier": 18
+        },
+        "Antonin": {
+          "pilier": 51,
+          "flanker": 347
+        },
+        "Ian": {
+          "ailier": 70,
+          "demi d'ouverture": 332
+        },
+        "Arthur F": {
+          "flanker": 120
+        },
+        "Baptiste C": {
+          "centre": 120,
+          "flanker": 27
+        },
+        "Augustin": {
+          "demi d'ouverture": 207,
+          "ailier": 137
+        },
+        "Clément": {
+          "talonneur": 214
+        },
+        "Valère": {
+          "pilier": 206
+        },
+        "Gaby": {
+          "ailier": 231
+        },
+        "Leo": {
+          "ailier": 251,
+          "demi d'ouverture": 26
+        },
+        "Anoki": {
+          "demi de melee": 368
+        },
+        "Thimothée": {
+          "flanker": 82
+        }
+      }
+    },
+    {
+      "id": 1774081185138,
+      "name": "Toulouse ",
+      "date": "21/03/2026",
+      "format": 10,
+      "halfDuration": 7,
+      "lineup": {
+        "1": "Arthur F",
+        "2": "Antonin",
+        "3": "Jean-Simon",
+        "4": "Leo",
+        "5": "Clément",
+        "6": "Anoki",
+        "7": "Augustin",
+        "8": "Baptiste C",
+        "9": "Ian",
+        "10": "Valère"
+      },
+      "entries": {
+        "Ian": 2,
+        "Numa": 1,
+        "Anoki": 1,
+        "Arthur F": 1,
+        "Aaron": 1,
+        "Baptiste C": 1,
+        "Antonin": 1,
+        "Leo": 2,
+        "Gaby": 1,
+        "Thimothée": 1,
+        "Valère": 1,
+        "Augustin": 1,
+        "Jean-Simon": 1,
+        "Clément": 1
+      },
+      "playtime": {
+        "Antonin": 615,
+        "Gaby": 365,
+        "Leo": 526,
+        "Jean-Simon": 477,
+        "Thimothée": 457,
+        "Valère": 715,
+        "Augustin": 714,
+        "Ian": 752,
+        "Clément": 638,
+        "Lucas": 612,
+        "Numa": 558,
+        "Anoki": 632,
+        "Arthur F": 624,
+        "Aaron": 515,
+        "Baptiste C": 607
+      },
+      "lastChangeTs": {
+        "1": 1774084379645,
+        "2": 1774084340752,
+        "3": 1774084571308,
+        "4": 1774084683377,
+        "5": 1774084630197,
+        "6": 1774083883195,
+        "7": 1774084508120,
+        "8": 1774084279227,
+        "9": 1774084516028,
+        "10": 1774084502805
+      },
+      "positionPlaytime": {
+        "Antonin": {
+          "flanker": 167
+        },
+        "Gaby": {
+          "demi de melee": 249,
+          "ailier": 116
+        },
+        "Leo": {
+          "centre": 257,
+          "demi d'ouverture": 125
+        },
+        "Jean-Simon": {
+          "pilier": 263
+        },
+        "Thimothée": {
+          "pilier": 457
+        },
+        "Valère": {
+          "flanker": 433
+        },
+        "Augustin": {
+          "demi d'ouverture": 437
+        },
+        "Ian": {
+          "ailier": 441
+        },
+        "Lucas": {
+          "ailier": 129
+        },
+        "Numa": {
+          "flanker": 243
+        },
+        "Aaron": {
+          "flanker": 296
+        }
+      }
+    },
+    {
+      "id": 1774081194530,
+      "name": "Colomiers ",
+      "date": "21/03/2026",
+      "format": 10,
+      "halfDuration": 7,
+      "lineup": {
+        "1": "Thimothée",
+        "2": "Clément",
+        "3": "Jean-Simon",
+        "4": "Valère",
+        "5": "Antonin",
+        "6": "Anoki",
+        "7": "Augustin",
+        "8": "Arthur F",
+        "9": "Leo",
+        "10": "Lucas"
+      },
+      "entries": {
+        "Numa": 1,
+        "Arthur F": 1,
+        "Anoki": 1,
+        "Ian": 1,
+        "Augustin": 1,
+        "Leo": 1,
+        "Gaby": 1,
+        "Thimothée": 1,
+        "Clément": 1,
+        "Jean-Simon": 1,
+        "Lucas": 1,
+        "Antonin": 1,
+        "Valère": 1
+      },
+      "playtime": {
+        "Jean-Simon": 356,
+        "Thimothée": 434,
+        "Gaby": 576,
+        "Leo": 694,
+        "Lucas": 407,
+        "Numa": 603,
+        "Antonin": 718,
+        "Valère": 650,
+        "Arthur F": 596,
+        "Baptiste C": 721,
+        "Clément": 543,
+        "Aaron": 840,
+        "Anoki": 572,
+        "Ian": 146,
+        "Augustin": 545
+      },
+      "lastChangeTs": {
+        "1": 1774087805806,
+        "2": 1774087873622,
+        "3": 1774087876879,
+        "4": 1774088058210,
+        "5": 1774088055687,
+        "6": 1774087130408,
+        "7": 1774087558380,
+        "8": 1774087194375,
+        "9": 1774087558380,
+        "10": 1774087883942
+      },
+      "positionPlaytime": {
+        "Jean-Simon": {
+          "pilier": 237
+        },
+        "Thimothée": {
+          "pilier": 244
+        },
+        "Gaby": {
+          "demi de melee": 268,
+          "ailier": 308
+        },
+        "Leo": {
+          "demi d'ouverture": 274
+        },
+        "Lucas": {
+          "ailier": 295
+        },
+        "Numa": {
+          "pilier": 70
+        },
+        "Antonin": {
+          "flanker": 307,
+          "pilier": 6,
+          "talonneur": 297
+        },
+        "Valère": {
+          "flanker": 312,
+          "pilier": 230
+        },
+        "Arthur F": {
+          "pilier": 88
+        },
+        "Baptiste C": {
+          "centre": 332,
+          "pilier": 301
+        }
+      }
+    },
+    {
+      "id": 1774081200154,
+      "name": "Toulouse ",
+      "date": "21/03/2026",
+      "format": 10,
+      "halfDuration": 7,
+      "lineup": {
+        "1": "Jean-Simon",
+        "2": "Antonin",
+        "3": "Baptiste C",
+        "4": "Valère",
+        "5": "Aaron",
+        "6": "Anoki",
+        "7": "Ian",
+        "8": "Leo",
+        "9": "Lucas",
+        "10": "Augustin"
+      },
+      "entries": {
+        "Antonin": 3,
+        "Baptiste C": 2,
+        "Anoki": 2,
+        "Gaby": 2,
+        "Arthur F": 1,
+        "Thimothée": 1,
+        "Aaron": 3,
+        "Augustin": 2,
+        "Ian": 2,
+        "Leo": 1,
+        "Lucas": 1,
+        "Valère": 1,
+        "Numa": 1
+      },
+      "playtime": {
+        "Jean-Simon": 192,
+        "Arthur F": 328,
+        "Baptiste C": 237,
+        "Numa": 468,
+        "Clément": 718,
+        "Antonin": 694,
+        "Valère": 422,
+        "Anoki": 422,
+        "Ian": 422,
+        "Lucas": 655,
+        "Gaby": 520,
+        "Thimothée": 191,
+        "Aaron": 71
+      },
+      "lastChangeTs": {
+        "1": 1774088998028,
+        "2": 1774089556936,
+        "3": 1774089538911,
+        "4": 1774089281832,
+        "5": 1774089455165,
+        "6": 1774089214060,
+        "7": 1774089221374,
+        "8": 1774089239301,
+        "9": 1774089239301,
+        "10": 1774089591620
+      },
+      "positionPlaytime": {
+        "Jean-Simon": {
+          "pilier": 192
+        },
+        "Arthur F": {
+          "pilier": 29,
+          "flanker": 98
+        },
+        "Baptiste C": {
+          "centre": 221,
+          "pilier": 10,
+          "talonneur": 6
+        },
+        "Numa": {
+          "flanker": 468
+        },
+        "Aaron": {
+          "flanker": 21
+        },
+        "Lucas": {
+          "ailier": 233
+        },
+        "Antonin": {
+          "talonneur": 272
+        },
+        "Clément": {
+          "pilier": 278,
+          "talonneur": 18
+        },
+        "Gaby": {
+          "ailier": 98
+        }
+      }
+    }
+  ],
+  "currentMatchId": 1774081200154,
+  "tournamentEntries": {
+    "Clément": 3,
+    "Jean-Simon": 4,
+    "Antonin": 9,
+    "Anoki": 5,
+    "Augustin": 6,
+    "Arthur F": 4,
+    "Aaron": 6,
+    "Baptiste C": 5,
+    "Ian": 8,
+    "Lucas": 4,
+    "Thimothée": 5,
+    "Numa": 4,
+    "Gaby": 5,
+    "Valère": 6,
+    "Leo": 7
+  },
+  "tournamentPlaytime": {
+    "Jean-Simon": 1055,
+    "Antonin": 2541,
+    "Ian": 1722,
+    "Arthur F": 2246,
+    "Baptiste C": 2152,
+    "Augustin": 1655,
+    "Clément": 2113,
+    "Aaron": 1918,
+    "Anoki": 2252,
+    "Lucas": 2141,
+    "Thimothée": 1404,
+    "Numa": 2275,
+    "Gaby": 1880,
+    "Valère": 2181,
+    "Leo": 1631
+  },
+  "absentPlayers": [
+    "Asser",
+    "Ugo C",
+    "Arthur A",
+    "Anakin",
+    "Sacha",
+    "Kaan-Emir",
+    "Matheo",
+    "Baptiste G",
+    "Paul",
+    "Guillem",
+    "Marceau",
+    "Romain",
+    "Thomas",
+    "Robin",
+    "Hugo",
+    "Mathis",
+    "Andrea",
+    "Maxence",
+    "Marius",
+    "Noé"
+  ],
+  "positionPlaytime": {
+    "Jean-Simon": {
+      "pilier": 710
+    },
+    "Antonin": {
+      "pilier": 57,
+      "flanker": 821,
+      "talonneur": 569
+    },
+    "Ian": {
+      "ailier": 511,
+      "demi d'ouverture": 332
+    },
+    "Arthur F": {
+      "flanker": 218,
+      "pilier": 117
+    },
+    "Baptiste C": {
+      "centre": 673,
+      "flanker": 27,
+      "pilier": 311,
+      "talonneur": 6
+    },
+    "Augustin": {
+      "demi d'ouverture": 644,
+      "ailier": 137
+    },
+    "Clément": {
+      "talonneur": 232,
+      "pilier": 278
+    },
+    "Valère": {
+      "pilier": 436,
+      "flanker": 745
+    },
+    "Gaby": {
+      "ailier": 753,
+      "demi de melee": 517
+    },
+    "Leo": {
+      "ailier": 251,
+      "demi d'ouverture": 425,
+      "centre": 257
+    },
+    "Anoki": {
+      "demi de melee": 368
+    },
+    "Thimothée": {
+      "flanker": 82,
+      "pilier": 701
+    },
+    "Lucas": {
+      "ailier": 657
+    },
+    "Numa": {
+      "flanker": 711,
+      "pilier": 70
+    },
+    "Aaron": {
+      "flanker": 317
+    }
+  }
+}

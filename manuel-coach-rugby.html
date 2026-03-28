@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manuel — Coach Rugby</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a1628; --bg2:#0f1f3d; --card:#1a2f52;
+  --border:#243d66; --accent:#e8a020; --accent2:#f0c060;
+  --green:#2ecc71; --red:#e74c3c; --blue:#3498db;
+  --text:#d4e3f7; --muted:#6b8ab0; --white:#fff;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Barlow',sans-serif; font-weight:400;
+  line-height:1.6; max-width:760px; margin:0 auto; padding:0 0 60px;
+}
+
+/* COVER */
+.cover { background:linear-gradient(160deg,var(--bg2) 0%,#0d2040 100%); border-bottom:3px solid var(--accent); padding:40px 28px 32px; text-align:center; }
+.cover-emoji { font-size:3.5rem; margin-bottom:12px; }
+.cover h1 { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:2.2rem; letter-spacing:3px; text-transform:uppercase; color:var(--white); margin-bottom:4px; }
+.cover h1 span { color:var(--accent); }
+.cover-sub { font-size:.9rem; color:var(--muted); margin-bottom:20px; }
+.cover-badges { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.badge { background:rgba(232,160,32,.12); border:1px solid rgba(232,160,32,.3); border-radius:20px; padding:4px 12px; font-size:.75rem; font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:1px; color:var(--accent); text-transform:uppercase; }
+
+/* TOC */
+.toc { background:var(--bg2); border-bottom:1px solid var(--border); padding:20px 28px; }
+.toc-title { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:.75rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+.toc a { display:flex; align-items:center; gap:8px; padding:6px 0; color:var(--text); text-decoration:none; font-size:.9rem; border-bottom:1px solid rgba(36,61,102,.4); transition:color .15s; }
+.toc a:last-child { border-bottom:none; }
+.toc a:hover { color:var(--accent); }
+.toc-icon { font-size:1rem; width:22px; text-align:center; flex-shrink:0; }
+.toc-num { margin-left:auto; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:.78rem; color:var(--muted); }
+
+/* SECTIONS */
+.section { padding:28px 28px 0; }
+.section + .section { border-top:1px solid var(--border); margin-top:28px; padding-top:28px; }
+.section-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+.section-icon { width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0; background:rgba(232,160,32,.1); border:1px solid rgba(232,160,32,.25); }
+.section-icon.green { background:rgba(46,204,113,.1); border-color:rgba(46,204,113,.25); }
+.section-icon.blue  { background:rgba(52,152,219,.1); border-color:rgba(52,152,219,.25); }
+.section-icon.red   { background:rgba(231,76,60,.1);  border-color:rgba(231,76,60,.25); }
+h2 { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:1.3rem; letter-spacing:1px; text-transform:uppercase; color:var(--white); }
+h2 .num { color:var(--accent); margin-right:4px; }
+h3 { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:1rem; letter-spacing:1px; text-transform:uppercase; color:var(--accent2); margin:20px 0 8px; }
+p { margin-bottom:10px; font-size:.9rem; }
+
+/* STEPS */
+.steps { list-style:none; margin:12px 0; }
+.steps li { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid rgba(36,61,102,.4); font-size:.88rem; align-items:flex-start; }
+.steps li:last-child { border-bottom:none; }
+.step-num { width:24px; height:24px; border-radius:50%; background:var(--accent); color:#0a1628; font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:.8rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+
+/* BOXES */
+.tip, .warn, .info { border-radius:10px; padding:12px 14px; margin:12px 0; font-size:.85rem; line-height:1.5; display:flex; gap:10px; align-items:flex-start; }
+.tip  { background:rgba(46,204,113,.08); border-left:3px solid var(--green); }
+.warn { background:rgba(232,160,32,.08); border-left:3px solid var(--accent); }
+.info { background:rgba(52,152,219,.08); border-left:3px solid var(--blue); }
+.tip-icon { font-size:1rem; flex-shrink:0; margin-top:1px; }
+
+/* UI LABELS */
+.ui { display:inline-block; background:var(--card); border:1px solid var(--border); border-radius:6px; padding:2px 8px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:.8rem; letter-spacing:.5px; color:var(--accent2); white-space:nowrap; }
+.ui.gold  { background:rgba(232,160,32,.15); border-color:rgba(232,160,32,.4); color:var(--accent); }
+.ui.green { background:rgba(46,204,113,.1);  border-color:rgba(46,204,113,.3); color:var(--green); }
+.ui.blue  { background:rgba(52,152,219,.1);  border-color:rgba(52,152,219,.3); color:var(--blue); }
+.ui.red   { background:rgba(231,76,60,.1);   border-color:rgba(231,76,60,.3);  color:var(--red); }
+
+/* TAB BAR ILLUSTRATION */
+.tab-bar { display:flex; background:var(--bg2); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin:14px 0; }
+.tab-item { flex:1; padding:9px 6px; text-align:center; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:.72rem; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); border-right:1px solid var(--border); }
+.tab-item:last-child { border-right:none; }
+.tab-item.active { color:var(--accent); background:rgba(232,160,32,.06); }
+
+/* FEATURE GRID */
+.feature-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
+.feature-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; }
+.feature-card .fc-icon { font-size:1.4rem; margin-bottom:6px; }
+.feature-card .fc-title { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:.85rem; letter-spacing:.5px; text-transform:uppercase; color:var(--white); margin-bottom:4px; }
+.feature-card .fc-desc { font-size:.75rem; color:var(--muted); line-height:1.4; }
+
+/* COLOR LEGEND */
+.legend { display:flex; flex-direction:column; gap:6px; margin:10px 0; }
+.legend-item { display:flex; align-items:center; gap:10px; font-size:.85rem; }
+.dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+/* TIMER ILLUSTRATION */
+.timer-mock { background:var(--bg2); border:2px solid var(--green); border-radius:14px; padding:16px; text-align:center; margin:14px 0; }
+.timer-mock .tm-period { font-family:'Barlow Condensed',sans-serif; font-size:.75rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.timer-mock .tm-digits { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:3rem; letter-spacing:4px; color:var(--green); line-height:1.1; }
+.timer-mock .tm-buttons { display:flex; gap:6px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+.timer-mock .tm-btn { padding:6px 12px; border-radius:8px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:.78rem; letter-spacing:1px; text-transform:uppercase; }
+
+/* DIVIDER */
+.divider { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); margin:0 28px; }
+
+/* FOOTER */
+footer { text-align:center; padding:32px 28px; font-size:.78rem; color:var(--muted); border-top:1px solid var(--border); margin-top:28px; }
+footer strong { color:var(--accent); }
+
+/* NEW badge */
+.new-badge { display:inline-block; background:var(--green); color:#0a1628; border-radius:4px; padding:1px 6px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:.65rem; letter-spacing:1px; text-transform:uppercase; vertical-align:middle; margin-left:6px; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-emoji">🏉</div>
+  <h1><span>Coach</span> Rugby</h1>
+  <div class="cover-sub">Manuel utilisateur · v2.0 — Édition complète</div>
+  <div class="cover-badges">
+    <span class="badge">XV · X · VII</span>
+    <span class="badge">Chronomètre</span>
+    <span class="badge">Temps de jeu</span>
+    <span class="badge">Calendrier</span>
+    <span class="badge">Suggestions auto</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <div class="toc-title">Sommaire</div>
+  <a href="#s1"><span class="toc-icon">🚀</span> Démarrage rapide <span class="toc-num">01</span></a>
+  <a href="#s2"><span class="toc-icon">⚙️</span> Configuration <span class="toc-num">02</span></a>
+  <a href="#s3"><span class="toc-icon">📋</span> Calendrier de la journée <span class="toc-num">03</span></a>
+  <a href="#s4"><span class="toc-icon">🏉</span> Composition de l'équipe <span class="toc-num">04</span></a>
+  <a href="#s5"><span class="toc-icon">⏱</span> Chronomètre <span class="toc-num">05</span></a>
+  <a href="#s6"><span class="toc-icon">🔄</span> Banc &amp; remplacements <span class="toc-num">06</span></a>
+  <a href="#s7"><span class="toc-icon">💡</span> Suggestions de changements <span class="toc-num">07</span></a>
+  <a href="#s8"><span class="toc-icon">📊</span> Statistiques <span class="toc-num">08</span></a>
+  <a href="#s9"><span class="toc-icon">🗓</span> Workflows de match <span class="toc-num">09</span></a>
+  <a href="#s10"><span class="toc-icon">📱</span> Installation &amp; données <span class="toc-num">10</span></a>
+</div>
+
+<!-- ══ S1 — DÉMARRAGE ══ -->
+<div class="section" id="s1">
+  <div class="section-header">
+    <div class="section-icon green">🚀</div>
+    <h2><span class="num">01</span> Démarrage rapide</h2>
+  </div>
+
+  <p>L'application fonctionne directement dans le navigateur — aucune installation requise. Toutes les données sont sauvegardées automatiquement sur l'appareil.</p>
+
+  <div class="tab-bar">
+    <div class="tab-item active">📋 Matchs</div>
+    <div class="tab-item">🏉 Compo</div>
+    <div class="tab-item">🔄 Banc</div>
+    <div class="tab-item">📊 Stats</div>
+  </div>
+
+  <p>La navigation principale comporte 4 onglets. Le bouton <span class="ui gold">⚙️</span> en haut à droite du logo ouvre la configuration sans quitter les onglets.</p>
+
+  <h3>En 3 minutes chrono</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Ouvrez <span class="ui gold">⚙️</span> → chargez votre Google Sheet avec la liste des joueurs.</li>
+    <li><span class="step-num">2</span>Donnez un nom au tournoi, choisissez le format <span class="ui">XV</span> <span class="ui">X</span> ou <span class="ui">VII</span>.</li>
+    <li><span class="step-num">3</span>Onglet <span class="ui">📋 Matchs</span> → <span class="ui gold">+ Match</span> pour créer le premier match.</li>
+    <li><span class="step-num">4</span>Onglet <span class="ui">🏉 Compo</span> → <span class="ui gold">⚡ Sélection auto</span> pour remplir l'équipe.</li>
+    <li><span class="step-num">5</span>Appuyez sur <span class="ui green">▶ Start</span> — l'appli trace le temps de jeu en temps réel.</li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══ S2 — CONFIG ══ -->
+<div class="section" id="s2">
+  <div class="section-header">
+    <div class="section-icon">⚙️</div>
+    <h2><span class="num">02</span> Configuration</h2>
+  </div>
+
+  <h3>Connexion au Google Sheet</h3>
+  <div class="info">
+    <span class="tip-icon">📋</span>
+    <div>
+      <strong>Colonne A</strong> : Nom du joueur<br>
+      <strong>Colonne B</strong> : Postes séparés par des virgules<br>
+      Exemple : <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px;font-size:.8rem">Jean Dupont | pilier, talonneur</code><br><br>
+      Postes reconnus : pilier, talonneur, 2ème ligne, flanker, numéro 8, demi de mêlée, demi d'ouverture, centre, ailier, arrière. Les variantes anglaises (prop, hooker, wing…) sont aussi acceptées.
+    </div>
+  </div>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Dans Google Sheets : <strong>Partager</strong> → "Tout le monde avec le lien" → Lecteur.</li>
+    <li><span class="step-num">2</span>Copiez l'URL et collez-la dans le champ <em>URL d'export CSV</em>.</li>
+    <li><span class="step-num">3</span>Tapez <span class="ui gold">⬇️ Charger les joueurs</span>. La liste apparaît en dessous.</li>
+  </ul>
+
+  <h3>Format et tournoi</h3>
+  <p>Choisissez <span class="ui">XV</span>, <span class="ui">X</span> ou <span class="ui">VII</span> comme format par défaut. Les durées de mi-temps sont prédéfinies (40 / 25 / 7 min) mais modifiables par match. Les nouveaux matchs héritent automatiquement de la durée du match précédent.</p>
+
+  <h3>Joueurs absents</h3>
+  <p>Dans la carte <em>Absents du tournoi</em>, tapez un nom pour le marquer absent <span class="ui red">🚫</span>. Il disparaît de la composition, du banc et de la sélection automatique pour toute la durée du tournoi. Tapez à nouveau pour le réactiver.</p>
+
+  <h3>Sauvegarde</h3>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="fc-icon">📤</div>
+      <div class="fc-title">Export JSON</div>
+      <div class="fc-desc">Sauvegarde complète : joueurs, matchs, stats. À faire après chaque tournoi.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">📥</div>
+      <div class="fc-title">Import JSON</div>
+      <div class="fc-desc">Restaure une sauvegarde ou transfère les données vers un autre appareil.</div>
+    </div>
+  </div>
+  <div class="warn">
+    <span class="tip-icon">⚠️</span>
+    <div>Les données sont dans le navigateur. Ne videz pas le cache entre les matchs. Exportez en JSON après chaque tournoi.</div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══ S3 — CALENDRIER ══ -->
+<div class="section" id="s3">
+  <div class="section-header">
+    <div class="section-icon blue">📋</div>
+    <h2><span class="num">03</span> Calendrier de la journée</h2>
+  </div>
+
+  <p>L'onglet <span class="ui">📋 Matchs</span> fonctionne comme un planning complet de la journée. Il contient deux types d'items : les <strong>matchs</strong> et les <strong>pauses</strong>.</p>
+
+  <h3>Créer un match</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Bouton <span class="ui gold">+ Match</span> → saisissez le nom (ex : <em>Match 1</em>, <em>vs Biarritz</em>).</li>
+    <li><span class="step-num">2</span>Saisissez l'heure de début (HH:MM) — optionnel, peut être ajouté ou modifié plus tard.</li>
+    <li><span class="step-num">3</span>Le match est créé avec le format et la durée du match précédent. L'onglet Matchs reste actif.</li>
+  </ul>
+
+  <h3>Créer une pause <span class="new-badge">Nouveau</span></h3>
+  <p>Les pauses représentent les périodes où votre équipe ne joue pas (matchs adverses, déjeuner, déplacement…).</p>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Bouton <span class="ui">⏸ Pause</span> → saisissez la description.</li>
+    <li><span class="step-num">2</span>Heure de début (optionnel) et durée estimée en minutes.</li>
+  </ul>
+
+  <h3>Heure de début</h3>
+  <p>Chaque item (match ou pause) affiche un bouton <span class="ui">🕐 heure</span> ou <span class="ui">+ heure</span>. Tapez-le pour saisir ou modifier l'heure au format HH:MM. L'heure est purement indicative — elle ne déclenche rien automatiquement.</p>
+
+  <h3>Réorganiser l'ordre <span class="new-badge">Nouveau</span></h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Appuyez sur <span class="ui">⇅ Trier</span> — les poignées <strong>☰</strong> apparaissent à gauche de chaque item, les boutons Supprimer disparaissent.</li>
+    <li><span class="step-num">2</span>Maintenez appuyé sur une poignée ☰ et faites glisser l'item vers sa nouvelle position. Une ligne orange indique l'emplacement cible.</li>
+    <li><span class="step-num">3</span>Relâchez — l'ordre est sauvegardé immédiatement.</li>
+    <li><span class="step-num">4</span>Appuyez à nouveau sur <span class="ui">⇅ Trier</span> pour quitter le mode de tri et retrouver les boutons habituels.</li>
+  </ul>
+
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div>En mode tri, les matchs ne sont plus cliquables — cela évite les sélections accidentelles lors du glisser-déposer.</div>
+  </div>
+
+  <h3>Sélectionner un match actif</h3>
+  <p>Tapez un match dans la liste pour l'activer. Le match actif affiche le badge <span class="ui gold">ACTIF</span>. Le chrono se réinitialise pour ce match. Les pauses ne sont pas sélectionnables.</p>
+
+  <h3>Supprimer un item</h3>
+  <p>Bouton <span class="ui red">🗑</span> à droite de chaque item (visible hors mode tri).</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══ S4 — COMPO ══ -->
+<div class="section" id="s4">
+  <div class="section-header">
+    <div class="section-icon green">🏉</div>
+    <h2><span class="num">04</span> Composition de l'équipe</h2>
+  </div>
+
+  <h3>Choisir un joueur pour un poste</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Tapez une case de poste → le sélecteur s'ouvre par le bas.</li>
+    <li><span class="step-num">2</span>Les joueurs qualifiés pour ce poste apparaissent en premier avec le badge <span class="ui gold">✓ POSTE</span>.</li>
+    <li><span class="step-num">3</span>Chaque joueur affiche ses entrées (match / tournoi) et son temps de jeu. Les joueurs absents et les joueurs déjà sur le terrain n'apparaissent pas.</li>
+  </ul>
+
+  <h3>Code couleur des cases</h3>
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:var(--border)"></div> Gris — poste vide</div>
+    <div class="legend-item"><div class="dot" style="background:var(--green)"></div> Vert — joueur attribué</div>
+    <div class="legend-item"><div class="dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div> Vert pulsant — joueur en jeu, chrono actif (point vert animé)</div>
+  </div>
+
+  <h3>⚡ Sélection automatique</h3>
+  <p>Le bouton <span class="ui gold">⚡ Sélection auto</span> remplit tous les postes en deux passes :</p>
+  <ul class="steps">
+    <li><span class="step-num">1</span><strong>Passe naturelle :</strong> chaque poste est attribué au joueur disponible le moins joué au tournoi qui peut y jouer naturellement.</li>
+    <li><span class="step-num">2</span><strong>Dépannage :</strong> les postes restants sont comblés en priorisant le joueur ayant le moins joué à ce poste précis en dépannage, puis le moins joué au total.</li>
+  </ul>
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div>Une confirmation indique combien de postes seront remplis. Les joueurs absents sont exclus. Les postes déjà remplis sont remplacés.</div>
+  </div>
+
+  <h3>🔁 Compo 2ème mi-temps <span class="new-badge">Nouveau</span></h3>
+  <p>Le bouton <span class="ui blue">🔁 Compo 2ème mi-temps</span> apparaît uniquement à la pause de mi-temps (après avoir appuyé sur <span class="ui blue">🔔 Mi-Temps</span>). Il applique la même logique que la sélection auto, mais <strong>conserve les joueurs sur le terrain depuis ≤ 1 minute</strong> (ceux qui viennent d'entrer). Une confirmation liste les joueurs conservés avant d'appliquer.</p>
+
+  <h3>🔀 Swap entre deux joueurs</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Tapez <span class="ui blue">🔀 Swap joueurs</span> → mode swap activé (cases bleues au clic).</li>
+    <li><span class="step-num">2</span>Tapez le premier joueur (surbrillance bleue), puis le second → échange immédiat.</li>
+    <li><span class="step-num">3</span>Tapez <span class="ui blue">✕ Quitter swap</span> pour revenir au mode normal.</li>
+  </ul>
+
+  <h3>Retirer un joueur</h3>
+  <p>Tapez une case remplie → ouvrez le sélecteur → bouton <span class="ui red">🗑 Retirer le joueur</span> en bas.</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══ S5 — CHRONO ══ -->
+<div class="section" id="s5">
+  <div class="section-header">
+    <div class="section-icon">⏱</div>
+    <h2><span class="num">05</span> Chronomètre</h2>
+  </div>
+
+  <p>Le chronomètre est affiché en haut de l'onglet <span class="ui">🏉 Compo</span>. Il décompte depuis la durée de mi-temps définie.</p>
+
+  <div class="timer-mock">
+    <div class="tm-period">1ÈRE MI-TEMPS</div>
+    <div class="tm-digits">18:42</div>
+    <div class="tm-buttons">
+      <span class="tm-btn" style="background:var(--accent);color:#0a1628">⏸ Pause</span>
+      <span class="tm-btn" style="background:var(--blue);color:white">🔔 Mi-Temps</span>
+    </div>
+  </div>
+
+  <h3>Boutons selon la phase de jeu <span class="new-badge">Mis à jour</span></h3>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="fc-icon">▶</div>
+      <div class="fc-title">Start</div>
+      <div class="fc-desc">Lance le décompte. Visible uniquement quand le chrono est arrêté en 1ère ou 2ème mi-temps.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">⏸</div>
+      <div class="fc-title">Pause</div>
+      <div class="fc-desc">Stoppe le décompte et enregistre les temps. Réappuyer sur Start pour reprendre.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">🔔</div>
+      <div class="fc-title">Mi-Temps</div>
+      <div class="fc-desc">Visible uniquement en 1ère mi-temps. Passe en pause de mi-temps, remet le chrono à zéro.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">🏁</div>
+      <div class="fc-title">Fin de match</div>
+      <div class="fc-desc">Remplace "Mi-Temps" dès que la 2ème mi-temps commence. Clôture le match.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">▶</div>
+      <div class="fc-title">2ème mi-temps</div>
+      <div class="fc-desc">Apparaît uniquement à la pause de mi-temps. Lance le décompte de la 2ème période.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon">↺</div>
+      <div class="fc-title">Reset</div>
+      <div class="fc-desc">Remet le chrono à zéro. Les temps de jeu déjà enregistrés sont conservés.</div>
+    </div>
+  </div>
+
+  <h3>Temps additionnel <span class="new-badge">Nouveau</span></h3>
+  <p>Quand le décompte atteint <strong>0:00</strong>, le chrono ne s'arrête pas — il passe en temps additionnel affiché en <span style="color:#ff6b6b;font-weight:700">+MM:SS</span> rouge animé avec la mention <em>TEMPS ADDITIONNEL</em>. Le temps de jeu des joueurs continue à s'accumuler. Le bouton <span class="ui blue">🔔 Mi-Temps</span> devient <span style="background:#ff6b6b;color:white;border-radius:4px;padding:2px 6px;font-size:.8rem;font-family:'Barlow Condensed',sans-serif;font-weight:700">🔔 Siffler</span> pour signaler la fin manuellement.</p>
+
+  <h3>Réglages du chrono</h3>
+  <p>Deux champs sont disponibles dans le bloc chrono :</p>
+  <ul class="steps">
+    <li><span class="step-num">·</span><strong>Min/mi-temps</strong> — durée de chaque mi-temps. La modifier met automatiquement à jour l'intervalle de suggestion de changements à la moitié de cette valeur.</li>
+    <li><span class="step-num">·</span><strong>Propos. chgt (min)</strong> — intervalle avant la prochaine suggestion de changements (0 = désactivé). Voir section 07.</li>
+  </ul>
+
+  <h3>Code couleur du chrono</h3>
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:var(--green)"></div> Vert — chrono en cours</div>
+    <div class="legend-item"><div class="dot" style="background:var(--blue)"></div> Bleu — pause de mi-temps</div>
+    <div class="legend-item"><div class="dot" style="background:#ff6b6b"></div> Rouge animé — temps additionnel</div>
+    <div class="legend-item"><div class="dot" style="background:var(--red)"></div> Rouge fixe — match terminé</div>
+  </div>
+
+  <div class="info">
+    <span class="tip-icon">ℹ️</span>
+    <div>Le temps de jeu s'accumule uniquement quand un joueur est sur un poste ET que le chrono tourne. Placer un joueur avec le chrono à l'arrêt ne déclenche pas de comptage.</div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══ S6 — BANC ══ -->
+<div class="section" id="s6">
+  <div class="section-header">
+    <div class="section-icon blue">🔄</div>
+    <h2><span class="num">06</span> Banc &amp; remplacements</h2>
+  </div>
+
+  <p>L'onglet <span class="ui blue">🔄 Banc</span> liste tous les joueurs disponibles non sur le terrain, triés du <strong>moins joué au plus joué</strong> au tournoi. Les 3 premiers (les plus prioritaires à entrer) sont mis en valeur en orange.</p>
+
+  <h3>Effectuer un remplacement</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Tapez le remplaçant dans la liste → il se sélectionne (bordure orange).</li>
+    <li><span class="step-num">2</span>La grille du terrain s'affiche en dessous.</li>
+    <li><span class="step-num">3</span>Les postes <strong>compatibles</strong> pulsent en orange avec le temps depuis le dernier changement en grand.</li>
+    <li><span class="step-num">4</span>Les postes <strong>incompatibles</strong> (dépannage) restent grisés en pointillés, cliquables si nécessaire.</li>
+    <li><span class="step-num">5</span>Tapez le poste → substitution immédiate.</li>
+  </ul>
+
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div>Le temps affiché en grand sur chaque case est la durée depuis le dernier changement à ce poste — votre outil principal pour décider qui doit sortir.</div>
+  </div>
+
+  <h3>Annuler une sélection</h3>
+  <p>Tapez à nouveau le remplaçant sélectionné, ou le bouton <span class="ui">✕ Annuler la sélection</span>.</p>
+
+  <div class="info">
+    <span class="tip-icon">ℹ️</span>
+    <div>Lors d'une substitution, le temps du sortant est automatiquement clôturé avec le bon poste, et le remplaçant commence à être chronométré si le chrono est actif.</div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══ S7 — SUGGESTIONS ══ -->
+<div class="section" id="s7">
+  <div class="section-header">
+    <div class="section-icon blue">💡</div>
+    <h2><span class="num">07</span> Suggestions de changements <span class="new-badge">Nouveau</span></h2>
+  </div>
+
+  <p>L'appli peut proposer automatiquement des changements à intervalles réguliers, en se basant sur les temps de jeu au tournoi.</p>
+
+  <h3>Paramétrage</h3>
+  <p>Le champ <strong>Propos. chgt (min)</strong> dans le bloc chrono définit l'intervalle en minutes entre deux propositions. <strong>0 = désactivé.</strong> La valeur par défaut est la moitié de la durée d'une mi-temps, et se met à jour automatiquement quand vous changez la durée de mi-temps.</p>
+
+  <h3>Logique de sélection</h3>
+  <ul class="steps">
+    <li><span class="step-num">·</span>Les <strong>remplaçants</strong> proposés sont ceux avec le moins de temps de jeu au tournoi (la moitié du banc, arrondis au supérieur).</li>
+    <li><span class="step-num">·</span>Le joueur sortant est celui avec le <strong>plus de temps de jeu</strong> au poste naturel du remplaçant entrant.</li>
+    <li><span class="step-num">·</span>Si aucun poste naturel n'est disponible, le joueur le plus joué du terrain est proposé en dépannage (marqué <em>dépannage</em>).</li>
+  </ul>
+
+  <h3>Panneau de suggestions <span class="new-badge">Mis à jour</span></h3>
+  <p>Quand l'intervalle est atteint, un panneau bleu apparaît dans le bloc chrono :</p>
+  <ul class="steps">
+    <li><span class="step-num">·</span>Chaque ligne affiche le <strong>sortant → entrant</strong> avec le numéro et nom du poste.</li>
+    <li><span class="step-num">·</span>Bouton <span class="ui blue">✓ Valider</span> sur chaque ligne — valide ce changement individuel et marque la ligne en vert. Le panneau reste ouvert pour valider les autres.</li>
+    <li><span class="step-num">·</span>Vous pouvez valider plusieurs changements dans n'importe quel ordre avant de fermer.</li>
+    <li><span class="step-num">·</span>Bouton <span class="ui gold">✕ Fermer</span> — ferme le panneau et demande la prochaine durée avant une nouvelle proposition.</li>
+  </ul>
+
+  <h3>Fermeture et replanification</h3>
+  <p>À la fermeture du panneau, un champ permet de saisir la durée avant la prochaine proposition (en minutes). Si cette valeur est <strong>supérieure ou égale au temps restant</strong> dans la mi-temps, aucune nouvelle suggestion n'est planifiée. Saisir 0 désactive aussi les suggestions.</p>
+
+  <div class="tip">
+    <span class="tip-icon">💡</span>
+    <div>Ignorer toutes les suggestions sans rien valider est possible — fermez simplement le panneau. Les suggestions ne bloquent jamais le chrono ni les autres actions.</div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══ S8 — STATS ══ -->
+<div class="section" id="s8">
+  <div class="section-header">
+    <div class="section-icon">📊</div>
+    <h2><span class="num">08</span> Statistiques</h2>
+  </div>
+
+  <p>L'onglet <span class="ui">📊 Stats</span> offre trois niveaux d'analyse, mis à jour en temps réel pendant le chrono.</p>
+
+  <h3>Résumé (4 chiffres clés)</h3>
+  <div class="feature-grid">
+    <div class="feature-card"><div class="fc-icon">📋</div><div class="fc-title">Matchs</div><div class="fc-desc">Nombre total de matchs du tournoi.</div></div>
+    <div class="feature-card"><div class="fc-icon">👥</div><div class="fc-title">Joueurs</div><div class="fc-desc">Effectif total chargé (absents inclus).</div></div>
+    <div class="feature-card"><div class="fc-icon">🏉</div><div class="fc-title">Match actuel</div><div class="fc-desc">Postes remplis / total, format (XV/X/VII).</div></div>
+    <div class="feature-card"><div class="fc-icon" style="color:var(--red)">⚠️</div><div class="fc-title">N'ont pas joué</div><div class="fc-desc">Joueurs avec 0 seconde au tournoi.</div></div>
+  </div>
+
+  <h3>Tableau temps de jeu & entrées</h3>
+  <p>Pour chaque joueur, trié par temps total décroissant au tournoi. Un point vert animé signale les joueurs actuellement sur le terrain (temps mis à jour en direct).</p>
+
+  <h3>Tableau temps par poste</h3>
+  <p>Cumul du temps à chaque type de poste sur le tournoi. La colonne <strong>% Naturel</strong> indique la proportion de temps jouée aux postes naturels :</p>
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:var(--green)"></div> Vert (≥ 80%) — joue principalement à son poste naturel</div>
+    <div class="legend-item"><div class="dot" style="background:var(--accent2)"></div> Jaune (50–79%) — utilisation mixte</div>
+    <div class="legend-item"><div class="dot" style="background:var(--accent)"></div> Orange (&lt; 50%) — surtout en dépannage</div>
+  </div>
+  <p>Les colonnes de poste sont colorées en <span style="color:var(--green);font-weight:600">vert</span> pour les postes naturels, en <span style="color:var(--accent);font-weight:600">orange + badge dép.</span> pour le dépannage.</p>
+
+  <h3>Export CSV</h3>
+  <p>Un outil séparé (<em>rugby-json-to-csv.html</em>) convertit l'export JSON en 6 feuilles CSV : joueurs, calendrier, temps de jeu, temps par poste, détail par match, compositions.</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══ S9 — WORKFLOWS ══ -->
+<div class="section" id="s9">
+  <div class="section-header">
+    <div class="section-icon green">🗓</div>
+    <h2><span class="num">09</span> Workflows de match</h2>
+  </div>
+
+  <h3>Début de tournoi</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Chargez le Google Sheet → vérifiez la liste des joueurs.</li>
+    <li><span class="step-num">2</span>Marquez les absents dans <span class="ui gold">⚙️ Config</span>.</li>
+    <li><span class="step-num">3</span>Choisissez le format et le nom du tournoi.</li>
+    <li><span class="step-num">4</span>Créez les matchs et les pauses de la journée dans <span class="ui">📋 Matchs</span> avec leurs heures de début. Réorganisez si besoin avec <span class="ui">⇅ Trier</span>.</li>
+  </ul>
+
+  <h3>Avant chaque match</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Sélectionnez le match dans la liste → l'appli bascule sur Compo.</li>
+    <li><span class="step-num">2</span>Utilisez <span class="ui gold">⚡ Sélection auto</span> — les moins joués du tournoi sont prioritaires.</li>
+    <li><span class="step-num">3</span>Vérifiez la durée de mi-temps et l'intervalle de suggestion.</li>
+  </ul>
+
+  <h3>Pendant un match</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Appuyez sur <span class="ui green">▶ Start</span> au coup d'envoi.</li>
+    <li><span class="step-num">2</span>Changements : onglet <span class="ui blue">🔄 Banc</span> → sélectionnez le remplaçant → tapez le poste.</li>
+    <li><span class="step-num">3</span>Swap : <span class="ui blue">🔀 Swap joueurs</span> dans l'onglet Compo.</li>
+    <li><span class="step-num">4</span>À la mi-temps : <span class="ui blue">🔔 Mi-Temps</span> → optionnellement <span class="ui blue">🔁 Compo 2ème mi-temps</span> → <span class="ui green">▶ 2ème mi-temps</span>.</li>
+    <li><span class="step-num">5</span>Fin du match : <span class="ui blue">🏁 Fin de match</span> (ou laisser le temps additionnel s'écouler puis siffler).</li>
+  </ul>
+
+  <h3>Entre deux matchs</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Consultez <span class="ui">📊 Stats</span> pour voir qui n'a pas joué.</li>
+    <li><span class="step-num">2</span>Sélectionnez le match suivant dans la liste.</li>
+    <li><span class="step-num">3</span>Utilisez <span class="ui gold">⚡ Sélection auto</span> — l'algorithme privilégie automatiquement les moins joués.</li>
+  </ul>
+
+  <h3>Fin de tournoi</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Consultez les stats pour bilan complet.</li>
+    <li><span class="step-num">2</span>Exportez les données : <span class="ui gold">⚙️ Config</span> → <em>Exporter JSON</em>.</li>
+    <li><span class="step-num">3</span>Bouton <span class="ui">🔄 Nouveau tournoi</span> pour remettre les compteurs à zéro (les matchs restent visibles).</li>
+  </ul>
+
+  <div class="warn">
+    <span class="tip-icon">⚠️</span>
+    <div><strong>Nouveau tournoi ≠ suppression des matchs.</strong> Seuls les compteurs de stats sont remis à 0. Les matchs restent dans la liste.</div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══ S10 — INSTALL ══ -->
+<div class="section" id="s10">
+  <div class="section-header">
+    <div class="section-icon">📱</div>
+    <h2><span class="num">10</span> Installation &amp; données</h2>
+  </div>
+
+  <h3>Installer sur Android (recommandé)</h3>
+  <ul class="steps">
+    <li><span class="step-num">1</span>Ouvrez l'appli dans Chrome sur Android.</li>
+    <li><span class="step-num">2</span>Menu ⋮ → <strong>"Ajouter à l'écran d'accueil"</strong>.</li>
+    <li><span class="step-num">3</span>L'appli s'ouvre désormais en plein écran comme une vraie app native.</li>
+  </ul>
+
+  <h3>Partager avec d'autres coachs</h3>
+  <p>L'appli est un fichier HTML autonome. Envoyez-le par WhatsApp ou e-mail — il s'ouvre directement dans le navigateur. Pour déployer en ligne : <strong>netlify.com/drop</strong> (glissez le fichier → URL permanente gratuite en 2 min).</p>
+
+  <h3>Bonnes pratiques de sauvegarde</h3>
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:var(--green)"></div> Exportez en JSON après chaque tournoi</div>
+    <div class="legend-item"><div class="dot" style="background:var(--accent)"></div> Ne videz pas les données du navigateur entre les matchs</div>
+    <div class="legend-item"><div class="dot" style="background:var(--blue)"></div> Importez le JSON sur le nouvel appareil pour migrer</div>
+  </div>
+
+  <div class="info">
+    <span class="tip-icon">ℹ️</span>
+    <div>L'appli fonctionne <strong>hors-ligne</strong> une fois chargée. Seul le chargement du Google Sheet nécessite une connexion internet.</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <strong>🏉 Coach Rugby</strong> · Manuel v2.0<br>
+  Application web progressive · Données stockées localement · Export JSON recommandé après chaque tournoi
+</footer>
+
+</body>
+</html>
