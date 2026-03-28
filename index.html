@@ -395,6 +395,7 @@ let state = {
 // BENCH state
 let benchSelectedPlayer = null;
 let sortMode = false; // drag-to-reorder mode for match list
+let _savedSuggHTML = null; // preserves suggestion panel across re-renders
 
 // TIMER (in-memory, not persisted)
 let timer = {
@@ -941,6 +942,9 @@ function updateTimerDisplay() {
 
 function renderTimerSection() {
   const div=document.getElementById('timerSection'); if(!div) return;
+  // Save suggestion panel content before wiping the timer block
+  const existingBox = document.getElementById('subSuggestionBox');
+  if (existingBox && existingBox.innerHTML.trim()) _savedSuggHTML = existingBox.innerHTML;
   const match=getCurrentMatch();
   const s=timer.secondsLeft;
   const m=Math.floor(s/60), sec=s%60;
@@ -985,6 +989,12 @@ function renderTimerSection() {
     ${timer.period===1.5 ? '<div style="margin-top:10px"><button class="btn btn-outline btn-full" style="font-size:.8rem" onclick="autoFillHalfTime()">🔁 Compo 2ème mi-temps</button></div>' : ''}
     <div id="subSuggestionBox"></div>
   </div>`;
+  // Restore suggestion panel if it was showing before re-render
+  if (_savedSuggHTML) {
+    const box = document.getElementById('subSuggestionBox');
+    if (box) box.innerHTML = _savedSuggHTML;
+    _savedSuggHTML = null;
+  }
 }
 
 // Called when a player is placed on the field
@@ -1775,6 +1785,11 @@ function showSubSuggestion() {
 function applySubSuggestion(inPlayer, outPlayer, posNum, rowIdx) {
   const match = getCurrentMatch(); if (!match) return;
   const posType = getPositions(match).find(p=>p.num===posNum)?.type;
+
+  // Save the panel HTML before any re-render wipes it
+  const box = document.getElementById('subSuggestionBox');
+  if (box) _savedSuggHTML = box.innerHTML;
+
   onPlayerRemoved(outPlayer, posType);
   match.entries[inPlayer]=(match.entries[inPlayer]||0)+1;
   state.tournamentEntries[inPlayer]=(state.tournamentEntries[inPlayer]||0)+1;
@@ -1782,7 +1797,7 @@ function applySubSuggestion(inPlayer, outPlayer, posNum, rowIdx) {
   match.lastChangeTs[posNum]=Date.now();
   onPlayerPlaced(inPlayer);
   save(); renderCompo(); renderBench();
-  // Mark the row as applied without closing the panel
+  // _savedSuggHTML was restored by renderTimerSection — now update this row's state
   const btn = document.getElementById('sugg_btn_'+rowIdx);
   const row = document.getElementById('sugg_row_'+rowIdx);
   if (btn) { btn.textContent='✅ Fait'; btn.disabled=true; btn.style.background='var(--green)'; }
