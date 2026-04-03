@@ -112,13 +112,14 @@ footer strong { color:var(--accent); }
 <div class="cover">
   <div class="cover-emoji">🏉</div>
   <h1><span>Coach</span> Rugby</h1>
-  <div class="cover-sub">Manuel utilisateur · v2.0 — Édition complète</div>
+  <div class="cover-sub">Manuel utilisateur · v2.1</div>
   <div class="cover-badges">
     <span class="badge">XV · X · VII</span>
     <span class="badge">Chronomètre</span>
     <span class="badge">Temps de jeu</span>
     <span class="badge">Calendrier</span>
     <span class="badge">Suggestions auto</span>
+    <span class="badge">Sans mi-temps</span>
   </div>
 </div>
 
@@ -297,8 +298,8 @@ footer strong { color:var(--accent); }
     <div>Une confirmation indique combien de postes seront remplis. Les joueurs absents sont exclus. Les postes déjà remplis sont remplacés.</div>
   </div>
 
-  <h3>🔁 Compo 2ème mi-temps <span class="new-badge">Nouveau</span></h3>
-  <p>Le bouton <span class="ui blue">🔁 Compo 2ème mi-temps</span> apparaît uniquement à la pause de mi-temps (après avoir appuyé sur <span class="ui blue">🔔 Mi-Temps</span>). Il applique la même logique que la sélection auto, mais <strong>conserve les joueurs sur le terrain depuis ≤ 1 minute</strong> (ceux qui viennent d'entrer). Une confirmation liste les joueurs conservés avant d'appliquer.</p>
+  <h3>🔁 Compo 2ème mi-temps</h3>
+  <p>Le bouton <span class="ui blue">🔁 Compo 2ème mi-temps</span> apparaît uniquement à la pause de mi-temps, et uniquement si le match n'est pas en mode "sans mi-temps". Il applique la même logique que la sélection auto, mais <strong>conserve les joueurs sur le terrain depuis ≤ 1 minute</strong> (ceux qui viennent d'entrer). Une confirmation liste les joueurs conservés avant d'appliquer.</p>
 
   <h3>🔀 Swap entre deux joueurs</h3>
   <ul class="steps">
@@ -351,7 +352,7 @@ footer strong { color:var(--accent); }
     <div class="feature-card">
       <div class="fc-icon">🏁</div>
       <div class="fc-title">Fin de match</div>
-      <div class="fc-desc">Remplace "Mi-Temps" dès que la 2ème mi-temps commence. Clôture le match.</div>
+      <div class="fc-desc">Remplace "Mi-Temps" dès que la 2ème mi-temps commence. Visible dès le départ en mode sans mi-temps.</div>
     </div>
     <div class="feature-card">
       <div class="fc-icon">▶</div>
@@ -363,6 +364,11 @@ footer strong { color:var(--accent); }
       <div class="fc-title">Reset</div>
       <div class="fc-desc">Remet le chrono à zéro. Les temps de jeu déjà enregistrés sont conservés.</div>
     </div>
+    <div class="feature-card" style="border-color:rgba(232,160,32,.3)">
+      <div class="fc-icon">🔘</div>
+      <div class="fc-title">Sans mi-temps <span class="new-badge">Nouveau</span></div>
+      <div class="fc-desc">Interrupteur dans les réglages du chrono. Supprime la mi-temps : un seul décompte, le bouton <strong>🏁 Fin de match</strong> est présent dès le départ.</div>
+    </div>
   </div>
 
   <h3>Temps additionnel <span class="new-badge">Nouveau</span></h3>
@@ -371,8 +377,9 @@ footer strong { color:var(--accent); }
   <h3>Réglages du chrono</h3>
   <p>Deux champs sont disponibles dans le bloc chrono :</p>
   <ul class="steps">
-    <li><span class="step-num">·</span><strong>Min/mi-temps</strong> — durée de chaque mi-temps. La modifier met automatiquement à jour l'intervalle de suggestion de changements à la moitié de cette valeur.</li>
+    <li><span class="step-num">·</span><strong>Min/mi-temps</strong> — durée de chaque mi-temps. La modifier met automatiquement à jour l'intervalle de suggestion à la moitié de cette valeur.</li>
     <li><span class="step-num">·</span><strong>Propos. chgt (min)</strong> — intervalle avant la prochaine suggestion de changements (0 = désactivé). Voir section 07.</li>
+    <li><span class="step-num">·</span><strong>Sans mi-temps</strong> — interrupteur orange. Quand activé, supprime toute la logique de mi-temps : chrono unique, bouton 🏁 Fin de match visible dès le départ, pas de compo 2ème mi-temps.</li>
   </ul>
 
   <h3>Code couleur du chrono</h3>
@@ -526,8 +533,8 @@ footer strong { color:var(--accent); }
     <li><span class="step-num">1</span>Appuyez sur <span class="ui green">▶ Start</span> au coup d'envoi.</li>
     <li><span class="step-num">2</span>Changements : onglet <span class="ui blue">🔄 Banc</span> → sélectionnez le remplaçant → tapez le poste.</li>
     <li><span class="step-num">3</span>Swap : <span class="ui blue">🔀 Swap joueurs</span> dans l'onglet Compo.</li>
-    <li><span class="step-num">4</span>À la mi-temps : <span class="ui blue">🔔 Mi-Temps</span> → optionnellement <span class="ui blue">🔁 Compo 2ème mi-temps</span> → <span class="ui green">▶ 2ème mi-temps</span>.</li>
-    <li><span class="step-num">5</span>Fin du match : <span class="ui blue">🏁 Fin de match</span> (ou laisser le temps additionnel s'écouler puis siffler).</li>
+    <li><span class="step-num">4</span><em>Avec mi-temps :</em> <span class="ui blue">🔔 Mi-Temps</span> → optionnellement <span class="ui blue">🔁 Compo 2ème mi-temps</span> → <span class="ui green">▶ 2ème mi-temps</span>.</li>
+    <li><span class="step-num">5</span>Fin du match : <span class="ui blue">🏁 Fin de match</span> (ou laisser le temps additionnel s'écouler puis siffler). <em>Sans mi-temps : ce bouton est présent dès le début.</em></li>
   </ul>
 
   <h3>Entre deux matchs</h3>
@@ -541,12 +548,12 @@ footer strong { color:var(--accent); }
   <ul class="steps">
     <li><span class="step-num">1</span>Consultez les stats pour bilan complet.</li>
     <li><span class="step-num">2</span>Exportez les données : <span class="ui gold">⚙️ Config</span> → <em>Exporter JSON</em>.</li>
-    <li><span class="step-num">3</span>Bouton <span class="ui">🔄 Nouveau tournoi</span> pour remettre les compteurs à zéro (les matchs restent visibles).</li>
+    <li><span class="step-num">3</span>Bouton <span class="ui">🔄 Nouveau tournoi</span> — confirme, propose un export JSON, puis <strong>supprime tous les matchs</strong> et remet les stats à zéro.</li>
   </ul>
 
   <div class="warn">
     <span class="tip-icon">⚠️</span>
-    <div><strong>Nouveau tournoi ≠ suppression des matchs.</strong> Seuls les compteurs de stats sont remis à 0. Les matchs restent dans la liste.</div>
+    <div><strong>Nouveau tournoi = suppression complète.</strong> Tous les matchs sont effacés et les stats remises à zéro. Un export JSON est proposé avant la suppression.</div>
   </div>
 </div>
 

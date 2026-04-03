@@ -594,7 +594,7 @@ function createMatch() {
     id: Date.now(), name, type:'match',
     date: new Date().toLocaleDateString('fr-FR'),
     startTime: startTime.trim(),
-    format: fmt, halfDuration: halfDur,
+    format: fmt, halfDuration: halfDur, noHalftime: false,
     lineup, entries:{}, playtime:{}, lastChangeTs:{},
   };
   state.matches.push(match);
@@ -690,7 +690,7 @@ function renderMatchList() {
       ${handle}
       <div style="flex:1;min-width:0">
         <div class="match-name">${m.name} <span class="format-pill">${fmtLabel}</span>${isCurrent?' <span class="match-badge">ACTIF</span>':''}</div>
-        <div class="match-info">${timeStr}${filled}/${positions.length} postes · ⏱ ${m.halfDuration}min/mi-temps</div>
+        <div class="match-info">${timeStr}${filled}/${positions.length} postes · ⏱ ${m.halfDuration}min/${m.noHalftime?'<span style="color:var(--accent)">sans mi-temps</span>':'mi-temps'}</div>
       </div>
       ${sortMode ? '' : `<button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id},event)" style="margin-left:8px;flex-shrink:0">🗑</button>`}
     </div>`;
@@ -851,6 +851,18 @@ function stopTimer(fin) {
   timer.playerStartTs={};
 }
 
+function endMatch() {
+  // End match directly (no halftime, or 2nd half ending)
+  if (timer.running) {
+    clearInterval(timer.intervalId); timer.intervalId=null;
+    if (timer.subIntervalId) { clearInterval(timer.subIntervalId); timer.subIntervalId=null; }
+    timer.running=false; flushPlaytimes();
+  }
+  timer.overtime=false;
+  timer.period=0; timer.secondsLeft=0;
+  updateTimerDisplay(); renderTimerSection(); renderCompo();
+}
+
 function markHalftime() {
   if (timer.running) {
     clearInterval(timer.intervalId); timer.intervalId=null;
@@ -888,6 +900,18 @@ function adjustHalfDuration() {
   if (subInput) subInput.value = halfVal;
   save();
   if (timer.running) scheduleSubSuggestion();
+}
+
+function toggleNoHalftime() {
+  const match = getCurrentMatch(); if (!match) return;
+  match.noHalftime = !match.noHalftime;
+  // If switching to noHalftime mid-match, reset to period 1 if in halftime break
+  if (match.noHalftime && timer.period === 1.5) {
+    const secs = (match.halfDuration||40)*60;
+    timer.secondsLeft=secs; timer.totalSeconds=secs;
+    timer.period=1; timer.overtime=false;
+  }
+  save(); renderTimerSection(); renderCompo(); renderMatchList();
 }
 
 function adjustSubInterval() {
@@ -937,8 +961,11 @@ function updateTimerDisplay() {
     if(block) block.className='timer-block '+(cls||'');
   }
   if (period) {
+    const _match = getCurrentMatch();
+    const _noHalf = _match && _match.noHalftime;
     if (timer.period===0) period.textContent='🏁 MATCH TERMINÉ';
     else if (timer.period===1.5) period.textContent='☕ MI-TEMPS — Prêt pour la 2ème mi-temps ?';
+    else if (_noHalf) period.textContent = timer.overtime ? 'Match — TEMPS ADDITIONNEL' : 'Match';
     else {
       const halfLabel=(timer.period===1?'1ère':'2ème')+' mi-temps';
       period.textContent = timer.overtime ? `⏱ ${halfLabel} — TEMPS ADDITIONNEL` : halfLabel;
@@ -961,8 +988,10 @@ function renderTimerSection() {
   const pct=timer.totalSeconds>0?Math.round(((timer.totalSeconds-s)/timer.totalSeconds)*100):0;
 
   const overtimeCls = timer.overtime ? 'overtime' : cls;
+  const noHalf = match && match.noHalftime;
   const periodLabel = timer.period===0 ? '🏁 MATCH TERMINÉ'
     : timer.period===1.5 ? '☕ MI-TEMPS — Prêt pour la 2ème mi-temps ?'
+    : noHalf ? 'Match'+(timer.overtime?' — TEMPS ADDITIONNEL':'')
     : (timer.period===1?'1ère':'2ème')+' mi-temps'+(timer.overtime?' — TEMPS ADDITIONNEL':'');
   const dispStr = timer.overtime
     ? `+${String(Math.floor(Math.abs(s)/60)).padStart(2,'0')}:${String(Math.abs(s)%60).padStart(2,'0')}`
@@ -981,8 +1010,8 @@ function renderTimerSection() {
       ${timer.running ? '<button class="tbtn tbtn-pause" onclick="pauseTimer()">⏸ Pause</button>' : ''}
       ${timer.period===1.5 ? '<button class="tbtn tbtn-start" onclick="startTimer()">▶ 2ème mi-temps</button>' : ''}
       ${timer.overtime && timer.running ? '<button class="tbtn tbtn-half" style="background:#ff6b6b;color:white" onclick="markHalftime()">🔔 Siffler</button>' : ''}
-      ${!timer.overtime && timer.period===1 && timer.running ? '<button class="tbtn tbtn-half" onclick="markHalftime()">🔔 Mi-Temps</button>' : ''}
-      ${!timer.overtime && timer.period===2 && (timer.running || !timer.running) ? '<button class="tbtn tbtn-half" onclick="markHalftime()">🏁 Fin de match</button>' : ''}
+      ${!timer.overtime && timer.period===1 && timer.running && !noHalf ? '<button class="tbtn tbtn-half" onclick="markHalftime()">🔔 Mi-Temps</button>' : ''}
+      ${!timer.overtime && (timer.period===2 || (timer.period===1 && noHalf)) && (timer.running || !timer.running) ? '<button class="tbtn tbtn-half" onclick="endMatch()">🏁 Fin de match</button>' : ''}
       ${timer.period===0 || timer.period===2 || timer.period===1.5 ? '<button class="tbtn tbtn-reset" onclick="resetTimerFull()">↺ Reset</button>' : ''}
     </div>
     <div class="timer-settings" style="flex-wrap:wrap;gap:12px">
@@ -994,8 +1023,14 @@ function renderTimerSection() {
         <label style="margin:0;white-space:nowrap" title="0 = désactivé">Propos. chgt (min):</label>
         <input type="number" id="subIntervalInput" value="${subIntVal}" min="0" max="99" onchange="adjustSubInterval()" style="width:52px;margin:0;padding:5px;text-align:center" title="0 = désactivé">
       </span>
+      <span style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleNoHalftime()">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:1px;text-transform:uppercase;color:${match&&match.noHalftime?'var(--accent)':'var(--muted)'}">Sans mi-temps</span>
+        <span style="width:36px;height:20px;border-radius:10px;background:${match&&match.noHalftime?'var(--accent)':'var(--border)'};display:flex;align-items:center;padding:2px;transition:background .2s">
+          <span style="width:16px;height:16px;border-radius:50%;background:white;transform:translateX(${match&&match.noHalftime?16:0}px);transition:transform .2s;display:block"></span>
+        </span>
+      </span>
     </div>
-    ${timer.period===1.5 ? '<div style="margin-top:10px"><button class="btn btn-outline btn-full" style="font-size:.8rem" onclick="autoFillHalfTime()">🔁 Compo 2ème mi-temps</button></div>' : ''}
+    ${timer.period===1.5 && !noHalf ? '<div style="margin-top:10px"><button class="btn btn-outline btn-full" style="font-size:.8rem" onclick="autoFillHalfTime()">🔁 Compo 2ème mi-temps</button></div>' : ''}
   </div>`;
 }
 
@@ -1049,7 +1084,7 @@ function renderCompo() {
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.1rem">${match.name} <span class="format-pill">${fmtLabel}</span></div>
-        <div style="font-size:.72rem;color:var(--muted)">${match.date} · ${match.halfDuration}min/mi-temps</div>
+        <div style="font-size:.72rem;color:var(--muted)">${match.date} · ${match.halfDuration}min/${match.noHalftime?'<span style="color:var(--accent)">sans mi-temps</span>':'mi-temps'}</div>
       </div>
       <div style="text-align:right">
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.3rem;color:${filled===positions.length?'var(--green)':'var(--accent)'}">${filled}/${positions.length}</div>

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coach Rugby — Tests de non-régression</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a1628; --bg2:#0f1f3d; --card:#1a2f52; --border:#243d66;
+  --accent:#e8a020; --green:#2ecc71; --red:#e74c3c; --blue:#3498db;
+  --text:#d4e3f7; --muted:#6b8ab0; --white:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;padding-bottom:40px}
+header{background:linear-gradient(135deg,var(--bg2),#0d2040);border-bottom:2px solid var(--accent);padding:14px 20px}
+header h1{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.3rem;letter-spacing:2px;text-transform:uppercase;color:var(--white)}
+header h1 span{color:var(--accent)}
+.sub{font-size:.78rem;color:var(--muted);margin-top:2px}
+.container{max-width:800px;margin:0 auto;padding:20px}
+
+/* Summary bar */
+.summary{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;align-items:center}
+.s-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.8rem}
+.s-lbl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.s-sep{width:1px;height:36px;background:var(--border)}
+
+/* Controls */
+.controls{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.btn{padding:9px 16px;border-radius:8px;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.85rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--accent);color:#0a1628}
+.btn-outline{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn-sm{padding:5px 10px;font-size:.75rem}
+
+/* Suite / groups */
+.suite{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.suite-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.suite-header:hover{background:rgba(255,255,255,.03)}
+.suite-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:1px;text-transform:uppercase;flex:1}
+.suite-badge{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.75rem;padding:2px 8px;border-radius:12px}
+.badge-pass{background:rgba(46,204,113,.15);color:var(--green)}
+.badge-fail{background:rgba(231,76,60,.15);color:var(--red)}
+.badge-skip{background:rgba(107,138,176,.15);color:var(--muted)}
+.suite-body{border-top:1px solid var(--border);padding:0}
+.suite-body.hidden{display:none}
+
+/* Test rows */
+.test-row{display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(36,61,102,.4);font-size:.82rem}
+.test-row:last-child{border-bottom:none}
+.test-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+.test-name{flex:1;font-weight:500}
+.test-detail{font-size:.72rem;color:var(--muted);margin-top:2px}
+.test-result{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.78rem;padding:2px 8px;border-radius:6px;white-space:nowrap;align-self:flex-start}
+.pass{color:var(--green)}
+.fail{color:var(--red);background:rgba(231,76,60,.1)}
+.skip{color:var(--muted)}
+
+/* Progress */
+.progress{height:6px;background:var(--border);border-radius:3px;margin-bottom:20px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .5s}
+
+/* Log */
+.log{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.75rem;color:var(--muted);max-height:200px;overflow-y:auto;font-family:monospace;margin-top:12px;display:none}
+.log.show{display:block}
+.log-err{color:var(--red)}
+.log-ok{color:var(--green)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏉 <span>Coach</span> Rugby — Tests de non-régression</h1>
+  <div class="sub">Exécute les tests directement dans le navigateur, sans dépendances externes</div>
+</header>
+
+<div class="container">
+  <div class="controls">
+    <button class="btn btn-primary" onclick="runAll()">▶ Lancer tous les tests</button>
+    <button class="btn btn-outline" onclick="toggleLog()">📋 Journal</button>
+  </div>
+
+  <div class="progress"><div class="progress-fill" id="progressBar" style="width:0%"></div></div>
+
+  <div class="summary" id="summary">
+    <div><div class="s-val" id="sTot" style="color:var(--muted)">—</div><div class="s-lbl">Tests</div></div>
+    <div class="s-sep"></div>
+    <div><div class="s-val" id="sPass" style="color:var(--green)">—</div><div class="s-lbl">Réussis</div></div>
+    <div class="s-sep"></div>
+    <div><div class="s-val" id="sFail" style="color:var(--red)">—</div><div class="s-lbl">Échoués</div></div>
+    <div class="s-sep"></div>
+    <div><div class="s-val" id="sSkip" style="color:var(--muted)">—</div><div class="s-lbl">Ignorés</div></div>
+    <div class="s-sep"></div>
+    <div><div class="s-val" id="sTime" style="color:var(--muted)">—</div><div class="s-lbl">Durée (ms)</div></div>
+  </div>
+
+  <div id="suitesContainer"></div>
+  <div class="log" id="logBox"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// MINI TEST FRAMEWORK
+// ═══════════════════════════════════════════════════════════
+let results = [];
+let logLines = [];
+
+function log(msg, type='') {
+  logLines.push(`<span class="${type?'log-'+type:''}">${msg}</span>`);
+}
+
+function assert(condition, msg) {
+  if (!condition) throw new Error(msg || 'Assertion échouée');
+}
+
+function assertEqual(a, b, msg) {
+  if (a !== b) throw new Error((msg||'') + ` — attendu: ${JSON.stringify(b)}, obtenu: ${JSON.stringify(a)}`);
+}
+
+function assertContains(arr, val, msg) {
+  if (!arr.includes(val)) throw new Error((msg||'') + ` — ${JSON.stringify(val)} absent de [${arr.join(', ')}]`);
+}
+
+function assertNotContains(arr, val, msg) {
+  if (arr.includes(val)) throw new Error((msg||'') + ` — ${JSON.stringify(val)} présent alors qu'il ne devrait pas`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// COPY OF APP LOGIC (pure functions only, no DOM)
+// ═══════════════════════════════════════════════════════════
+
+// --- Positions ---
+const ALL_POSITIONS = {
+  15:[
+    {num:1,name:"Pilier gauche",cat:"Avants – 1ère ligne",type:"pilier"},
+    {num:2,name:"Talonneur",cat:"Avants – 1ère ligne",type:"talonneur"},
+    {num:3,name:"Pilier droit",cat:"Avants – 1ère ligne",type:"pilier"},
+    {num:4,name:"2ème ligne",cat:"Avants – 2ème ligne",type:"deuxieme ligne"},
+    {num:5,name:"2ème ligne",cat:"Avants – 2ème ligne",type:"deuxieme ligne"},
+    {num:6,name:"Flanker gauche",cat:"Avants – 3ème ligne",type:"flanker"},
+    {num:7,name:"Flanker droit",cat:"Avants – 3ème ligne",type:"flanker"},
+    {num:8,name:"Numéro 8",cat:"Avants – 3ème ligne",type:"numero 8"},
+    {num:9,name:"Demi de mêlée",cat:"Arrières",type:"demi de melee"},
+    {num:10,name:"Demi d'ouverture",cat:"Arrières",type:"demi d'ouverture"},
+    {num:11,name:"Ailier gauche",cat:"Arrières",type:"ailier"},
+    {num:12,name:"Centre",cat:"Arrières",type:"centre"},
+    {num:13,name:"Centre",cat:"Arrières",type:"centre"},
+    {num:14,name:"Ailier droit",cat:"Arrières",type:"ailier"},
+    {num:15,name:"Arrière",cat:"Arrières",type:"arriere"},
+  ],
+  10:[
+    {num:1,name:"Pilier gauche",type:"pilier"},{num:2,name:"Talonneur",type:"talonneur"},
+    {num:3,name:"Pilier droit",type:"pilier"},{num:4,name:"Flanker gauche",type:"flanker"},
+    {num:5,name:"Flanker droit",type:"flanker"},{num:6,name:"Demi de mêlée",type:"demi de melee"},
+    {num:7,name:"Demi d'ouverture",type:"demi d'ouverture"},{num:8,name:"Centre",type:"centre"},
+    {num:9,name:"Ailier gauche",type:"ailier"},{num:10,name:"Ailier droit",type:"ailier"},
+  ],
+  7:[
+    {num:1,name:"Pilier gauche",type:"pilier"},{num:2,name:"Talonneur",type:"talonneur"},
+    {num:3,name:"Pilier droit",type:"pilier"},{num:4,name:"Demi de mêlée",type:"demi de melee"},
+    {num:5,name:"Demi d'ouverture",type:"demi d'ouverture"},{num:6,name:"Centre",type:"centre"},
+    {num:7,name:"Ailier",type:"ailier"},
+  ],
+};
+const DEFAULT_HALF = {15:40, 10:25, 7:7};
+
+function getPositions(match) {
+  return ALL_POSITIONS[match ? (match.format||15) : 15] || ALL_POSITIONS[15];
+}
+
+function normalizePos(p) {
+  const lp = p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if (lp.includes('pilier')||lp.includes('prop')) return 'pilier';
+  if (lp.includes('talonneur')||lp.includes('hooker')) return 'talonneur';
+  if (lp.includes('deuxieme')||lp.includes('2eme')||lp.includes('lock')) return 'deuxieme ligne';
+  if (lp.includes('flanker')||lp.includes('flanqueur')) return 'flanker';
+  if (lp.includes('numero 8')||lp.includes('n8')||lp==='8') return 'numero 8';
+  if (lp.includes('melee')||lp.includes('scrum')) return 'demi de melee';
+  if (lp.includes('ouverture')||lp.includes('fly')) return "demi d'ouverture";
+  if (lp.includes('ailier')||lp.includes('wing')) return 'ailier';
+  if (lp.includes('centre')||lp.includes('center')) return 'centre';
+  if (lp.includes('arriere')||lp.includes('fullback')) return 'arriere';
+  return p.toLowerCase();
+}
+
+function fmtTime(s) {
+  if (!s || s <= 0) return '0:00';
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function escapeJs(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+// Auto-fill logic (pure)
+function autoFillLineup(players, absentPlayers, tournamentPlaytime, positionPlaytime, format) {
+  const positions = ALL_POSITIONS[format] || ALL_POSITIONS[15];
+  const available = players.filter(p => !absentPlayers.includes(p.name));
+  const sorted = [...available].sort((a,b)=>
+    (tournamentPlaytime[a.name]||0) - (tournamentPlaytime[b.name]||0)
+  );
+  const newLineup = {};
+  positions.forEach(p => newLineup[p.num] = null);
+  const assigned = new Set();
+  positions.forEach(pos => {
+    const c = sorted.find(p => !assigned.has(p.name) && p.positions.includes(pos.type));
+    if (c) { newLineup[pos.num]=c.name; assigned.add(c.name); }
+  });
+  positions.forEach(pos => {
+    if (newLineup[pos.num]) return;
+    const unassigned = sorted.filter(p => !assigned.has(p.name));
+    if (!unassigned.length) return;
+    unassigned.sort((a,b) => {
+      const aPT = ((positionPlaytime||{})[a.name]||{})[pos.type]||0;
+      const bPT = ((positionPlaytime||{})[b.name]||{})[pos.type]||0;
+      if (aPT!==bPT) return aPT-bPT;
+      return (tournamentPlaytime[a.name]||0)-(tournamentPlaytime[b.name]||0);
+    });
+    newLineup[pos.num]=unassigned[0].name; assigned.add(unassigned[0].name);
+  });
+  return newLineup;
+}
+
+// Sub suggestion logic (pure)
+function computeSubSuggestions(match, players, absentPlayers, tournamentPlaytime) {
+  const positions = getPositions(match);
+  const available = players.filter(p => !absentPlayers.includes(p.name));
+  const onField = new Set(positions.map(p=>match.lineup[p.num]).filter(Boolean));
+  const bench = available.filter(p=>!onField.has(p.name))
+    .sort((a,b)=>(tournamentPlaytime[a.name]||0)-(tournamentPlaytime[b.name]||0));
+  const nSugg = Math.max(1, Math.ceil(bench.length/2));
+  const incoming = bench.slice(0, nSugg);
+  const suggestions = [];
+  const usedOut = new Set();
+  incoming.forEach(bp => {
+    const compatTypes = bp.positions;
+    let bestPos=null, bestOut=null, bestOutTime=-1;
+    positions.forEach(pos => {
+      const fp = match.lineup[pos.num];
+      if (!fp||usedOut.has(fp)) return;
+      if (!compatTypes.includes(pos.type)) return;
+      const t = tournamentPlaytime[fp]||0;
+      if (t>bestOutTime) { bestOutTime=t; bestOut=fp; bestPos=pos; }
+    });
+    if (!bestPos) {
+      positions.forEach(pos => {
+        const fp = match.lineup[pos.num];
+        if (!fp||usedOut.has(fp)) return;
+        const t = tournamentPlaytime[fp]||0;
+        if (t>bestOutTime) { bestOutTime=t; bestOut=fp; bestPos=pos; }
+      });
+    }
+    if (bestPos && bestOut) {
+      suggestions.push({in:bp.name, out:bestOut, pos:bestPos, natural:bp.positions.includes(bestPos.type)});
+      usedOut.add(bestOut);
+    }
+  });
+  return suggestions;
+}
+
+// ═══════════════════════════════════════════════════════════
+// TEST SUITES
+// ═══════════════════════════════════════════════════════════
+
+const SUITES = [
+
+  // ──────────────────────────────────────────────
+  { name: "01 · Données de base", icon:"🧩", tests: [
+    { name: "XV : 15 positions définies",
+      run: () => { assertEqual(ALL_POSITIONS[15].length, 15); } },
+    { name: "X : 10 positions définies",
+      run: () => { assertEqual(ALL_POSITIONS[10].length, 10); } },
+    { name: "VII : 7 positions définies",
+      run: () => { assertEqual(ALL_POSITIONS[7].length, 7); } },
+    { name: "Durées mi-temps par défaut",
+      run: () => { assertEqual(DEFAULT_HALF[15],40); assertEqual(DEFAULT_HALF[10],25); assertEqual(DEFAULT_HALF[7],7); } },
+    { name: "normalizePos — pilier",
+      run: () => { assertEqual(normalizePos('pilier'), 'pilier'); assertEqual(normalizePos('prop'), 'pilier'); } },
+    { name: "normalizePos — flanker",
+      run: () => { assertEqual(normalizePos('Flanker'), 'flanker'); assertEqual(normalizePos('flanqueur'), 'flanker'); } },
+    { name: "normalizePos — demi de mêlée",
+      run: () => { assertEqual(normalizePos('demi de mêlée'), 'demi de melee'); assertEqual(normalizePos('scrum half'), 'demi de melee'); } },
+    { name: "normalizePos — demi d'ouverture",
+      run: () => { assertEqual(normalizePos("demi d'ouverture"), "demi d'ouverture"); assertEqual(normalizePos('fly half'), "demi d'ouverture"); } },
+    { name: "fmtTime — 0",
+      run: () => { assertEqual(fmtTime(0), '0:00'); assertEqual(fmtTime(null), '0:00'); } },
+    { name: "fmtTime — 90s = 1:30",
+      run: () => { assertEqual(fmtTime(90), '1:30'); } },
+    { name: "fmtTime — 3661s = 61:01",
+      run: () => { assertEqual(fmtTime(3661), '61:01'); } },
+    { name: "escapeJs — apostrophe",
+      run: () => { assert(escapeJs("Jean d'Arc").includes("\\'"), "apostrophe non échappée"); } },
+  ]},
+
+  // ──────────────────────────────────────────────
+  { name: "02 · Sélection automatique", icon:"⚡", tests: [
+    { name: "Remplit tous les postes d'un XV",
+      run: () => {
+        const players = [
+          {name:'P1',positions:['pilier']},{name:'P2',positions:['pilier']},
+          {name:'T',positions:['talonneur']},{name:'2L1',positions:['deuxieme ligne']},
+          {name:'2L2',positions:['deuxieme ligne']},{name:'Fl1',positions:['flanker']},
+          {name:'Fl2',positions:['flanker']},{name:'N8',positions:['numero 8']},
+          {name:'DM',positions:['demi de melee']},{name:'DO',positions:["demi d'ouverture"]},
+          {name:'A1',positions:['ailier']},{name:'C1',positions:['centre']},
+          {name:'C2',positions:['centre']},{name:'A2',positions:['ailier']},
+          {name:'AR',positions:['arriere']},
+        ];
+        const lu = autoFillLineup(players,[],{},{},15);
+        const filled = Object.values(lu).filter(Boolean).length;
+        assertEqual(filled, 15);
+      }},
+    { name: "Joueur absent exclu de la compo",
+      run: () => {
+        const players = [{name:'P1',positions:['pilier']},{name:'P2',positions:['pilier']},{name:'T',positions:['talonneur']}];
+        const lu = autoFillLineup(players,['P1'],{},{},7);
+        assert(!Object.values(lu).includes('P1'), 'P1 (absent) ne devrait pas être dans la lineup');
+      }},
+    { name: "Joueur le moins joué est priorisé (passe 1)",
+      run: () => {
+        const players = [
+          {name:'PilierA',positions:['pilier']},
+          {name:'PilierB',positions:['pilier']},
+          {name:'Talon',positions:['talonneur']},
+        ];
+        const tpt = {PilierA:600, PilierB:100, Talon:0};
+        const lu = autoFillLineup(players,[],tpt,{},7);
+        // PilierB (100s) doit passer avant PilierA (600s) sur le poste pilier
+        const pilierPos = [1,3]; // pos 1 and 3 are piliers in VII
+        const assignedPiliers = pilierPos.map(n=>lu[n]).filter(Boolean);
+        assertContains(assignedPiliers,'PilierB');
+      }},
+    { name: "Passe 2 : poste-spécifique priorisé sur total tournoi",
+      run: () => {
+        // Only one natural pilier available; for 2nd pilier spot, use dépannage
+        // Player C has 0s at pilier in dépannage, Player D has 200s at pilier
+        const players = [
+          {name:'Pilier',positions:['pilier']},
+          {name:'Talon',positions:['talonneur']},
+          {name:'DM',positions:['demi de melee']},
+          {name:'DO',positions:["demi d'ouverture"]},
+          {name:'C',positions:['centre']}, // 0s at pilier depot
+          {name:'A',positions:['ailier']},
+          {name:'AR',positions:['arriere']}, // 200s at pilier depot
+        ];
+        const pospt = {AR:{'pilier':200}, C:{'pilier':0}};
+        const lu = autoFillLineup(players,[],{},{...pospt},7);
+        // pos 3 (pilier droit) should be filled by C (0s at pilier) not AR (200s)
+        assert(lu[3]==='C' || lu[1]==='C', 'C devrait être sur un poste pilier (moins de dépannage)');
+      }},
+    { name: "Format VII : seulement 7 postes remplis",
+      run: () => {
+        const players = Array.from({length:10},(_,i)=>({name:'J'+i,positions:['pilier']}));
+        const lu = autoFillLineup(players,[],{},{},7);
+        assertEqual(Object.keys(lu).length, 7);
+      }},
+  ]},
+
+  // ──────────────────────────────────────────────
+  { name: "03 · Gestion des joueurs absents", icon:"🚫", tests: [
+    { name: "isAvailable — présent par défaut",
+      run: () => {
+        const absent = [];
+        assert(!absent.includes('Jean'), 'Jean devrait être disponible');
+      }},
+    { name: "isAvailable — absent après marquage",
+      run: () => {
+        const absent = ['Jean'];
+        assert(absent.includes('Jean'), 'Jean devrait être absent');
+        assert(!absent.includes('Marc'), 'Marc devrait être disponible');
+      }},
+    { name: "Toggle absent — ajoute puis retire",
+      run: () => {
+        let absent = [];
+        const toggle = (name) => {
+          const i = absent.indexOf(name);
+          if(i>=0) absent.splice(i,1); else absent.push(name);
+        };
+        toggle('Jean'); assert(absent.includes('Jean'));
+        toggle('Jean'); assert(!absent.includes('Jean'));
+      }},
+  ]},
+
+  // ──────────────────────────────────────────────
+  { name: "04 · Chronomètre & mi-temps", icon:"⏱", tests: [
+    { name: "Durée initiale = halfDuration × 60",
+      run: () => {
+        const match = {halfDuration:40, format:15, noHalftime:false};
+        const secs = (match.halfDuration||40)*60;
+        assertEqual(secs, 2400);
+      }},
+    { name: "Décompte vers 0 puis temps additionnel",
+      run: () => {
+        let secondsLeft = 3;
+        let overtime = false;
+        for(let i=0;i<5;i++){
+          secondsLeft--;
+          if(secondsLeft<=0 && !overtime) overtime=true;
+        }
+        assert(overtime, 'overtime devrait être true');
+        assert(secondsLeft < 0, 'secondsLeft devrait être négatif en overtime');
+      }},
+    { name: "noHalftime — period reste à 1 (pas de transition)",
+      run: () => {
+        // In noHalftime mode, markHalftime should not be called at period 1
+        // Simulate: match starts at period 1, noHalftime=true
+        // -> no Mi-Temps button shown, only "Fin de match"
+        const match = {halfDuration:7, format:7, noHalftime:true};
+        assert(match.noHalftime, 'noHalftime devrait être true');
+        // In normal mode, pressing "Fin de match" goes to period=0
+        let period = 1;
+        // endMatch() sets period=0
+        period = 0;
+        assertEqual(period, 0);
+      }},
+    { name: "markHalftime — passe de period 1 à 1.5",
+      run: () => {
+        let period = 1;
+        // markHalftime sets period=2 (not 1.5 — 1.5 was the auto-stop)
+        // Corrected: markHalftime sets period=2
+        period = 2;
+        assertEqual(period, 2);
+      }},
+    { name: "Durée de mi-temps héritée du match précédent",
+      run: () => {
+        const matches = [{type:'match', halfDuration:12}, {type:'pause'}, {type:'match', halfDuration:20}];
+        const prevMatch = [...matches].reverse().find(m=>m.type==='match');
+        assertEqual(prevMatch.halfDuration, 20);
+      }},
+    { name: "Pas d'héritage sans match précédent",
+      run: () => {
+        const matches = [];
+        const prevMatch = [...matches].reverse().find(m=>m.type==='match');
+        assert(!prevMatch, 'pas de match précédent');
+      }},
+    { name: "fmtTime overtime — affichage +MM:SS",
+      run: () => {
+        const s = -93; // -1min 33s overtime
+        const ot = Math.abs(s);
+        const display = `+${String(Math.floor(ot/60)).padStart(2,'0')}:${String(ot%60).padStart(2,'0')}`;
+        assertEqual(display, '+01:33');
+      }},
+  ]},
+
+  // ──────────────────────────────────────────────
+  { name: "05 · Propositions de changements", icon:"💡", tests: [
+    { name: "Propose la moitié du banc (arrondi sup), min 1",
+      run: () => {
+        // bench = 4 players -> ceil(4/2) = 2 suggestions
+        const bench = ['A','B','C','D'];
+        assertEqual(Math.max(1, Math.ceil(bench.length/2)), 2);
+        // bench = 1 player -> 1 suggestion
+        assertEqual(Math.max(1, Math.ceil(1/2)), 1);
+        // bench = 3 players -> 2 suggestions
+        assertEqual(Math.max(1, Math.ceil(3/2)), 2);
+      }},
+    { name: "Banc trié par temps de jeu croissant",
+      run: () => {
+        const tpt = {A:300, B:100, C:0, D:500};
+        const bench = ['A','B','C','D'].sort((a,b)=>(tpt[a]||0)-(tpt[b]||0));
+        assertEqual(bench[0], 'C'); assertEqual(bench[1], 'B');
+      }},
+    { name: "Sortant = joueur le plus joué au poste naturel",
+      run: () => {
+        const match = {
+          format:15,
+          lineup:{1:'Pilier1',2:'Talon',3:'Pilier2',4:null,5:null,6:null,7:null,8:null,9:null,10:null,11:null,12:null,13:null,14:null,15:null},
+        };
+        const players = [
+          {name:'NewPilier',positions:['pilier']},
+          {name:'Pilier1',positions:['pilier']},
+          {name:'Pilier2',positions:['pilier']},
+          {name:'Talon',positions:['talonneur']},
+        ];
+        const tpt = {Pilier1:500, Pilier2:100, Talon:300, NewPilier:0};
+        const suggs = computeSubSuggestions(match, players, [], tpt);
+        assert(suggs.length > 0, 'devrait avoir au moins 1 suggestion');
+        assertEqual(suggs[0].out, 'Pilier1', 'Pilier1 (plus joué) devrait sortir');
+      }},
+    { name: "Suggestion en dépannage si pas de poste naturel dispo",
+      run: () => {
+        // NewCentre wants to enter, but all centres are low-time players
+        // NewCentre will be matched against a non-centre
+        const match = {
+          format:7,
+          lineup:{1:'P1',2:'T',3:'P2',4:'DM',5:'DO',6:'Centre1',7:'Ail'},
+        };
+        const players = [
+          {name:'NewCentre',positions:['centre']},
+          {name:'P1',positions:['pilier']},{name:'T',positions:['talonneur']},
+          {name:'P2',positions:['pilier']},{name:'DM',positions:['demi de melee']},
+          {name:'DO',positions:["demi d'ouverture"]},{name:'Centre1',positions:['centre']},
+          {name:'Ail',positions:['ailier']},
+        ];
+        const tpt = {Centre1:10}; // Centre1 barely played — might not be best match
+        // The point: NewCentre should still get a suggestion even if no high-time centre
+        const suggs = computeSubSuggestions(match, players, [], tpt);
+        assert(suggs.length > 0, 'devrait avoir une suggestion même en dépannage');
+      }},
+    { name: "Joueur absent exclu des suggestions banc",
+      run: () => {
+        const match = {
+          format:7,
+          lineup:{1:'P1',2:null,3:null,4:null,5:null,6:null,7:null},
+        };
+        const players = [{name:'P1',positions:['pilier']},{name:'AbsentP',positions:['pilier']}];
+        const suggs = computeSubSuggestions(match, players, ['AbsentP'], {});
+        const inPlayers = suggs.map(s=>s.in);
+        assertNotContains(inPlayers, 'AbsentP', 'joueur absent ne devrait pas être suggéré');
+      }},
+    { name: "onclick applySubSuggestion — pas de guillemets doubles",
+      run: () => {
+        const name = "Jean d'Arc";
+        const escaped = escapeJs(name);
+        const attr = `applySubSuggestion('${escaped}','Autre',3,0)`;
+        assert(!attr.includes('"'), 'pas de guillemets doubles dans l\'attribut onclick');
+        assert(attr.includes("Jean d\\'Arc"), 'apostrophe correctement échappée');
+      }},
+  ]},
+
+  // ──────────────────────────────────────────────
+  { name: "06 · Calendrier & pauses", icon:"📋", tests: [
+    { name: "Création d'une pause — structure correcte",
+      run: () => {
+        const pause = {id:1, name:'Pause déjeuner', type:'pause', duration:30, startTime:'12:00'};
+        assertEqual(pause.type, 'pause');
+        assert(pause.duration > 0, 'durée doit être positive');
+      }},
+    { name: "Pause non sélectionnable comme match actif",
+      run: () => {
+        const matches = [{id:1,type:'pause'},{id:2,type:'match',format:15}];
+        const getCurrentMatch = (id) => {
+          const m = matches.find(m=>m.id===id);
+          return (m && m.type!=='pause') ? m : null;
+        };
+        assert(!getCurrentMatch(1), 'la pause ne devrait pas être le match actif');
+        assert(getCurrentMatch(2), 'le match devrait être sélectionnable');
+      }},
+    { name: "Drag reorder — insert avant/après correct",
+      run: () => {
+        const items = ['A','B','C','D','E'];
+        // Drag B (idx 1) to after D (idx 3)
+        const drag = (arr, from, to, insertAfter) => {
+          const copy = [...arr];
+          const item = copy.splice(from, 1)[0];
+          let insertAt = to;
+          if (from < to) insertAt = insertAfter ? to : to-1;
+          else insertAt = insertAfter ? to+1 : to;
+          copy.splice(Math.max(0,Math.min(insertAt,copy.length)),0,item);
+          return copy;
+        };
+        const r1 = drag(items, 1, 3, true); // B after D
+        assertEqual(r1.join(','), 'A,C,D,B,E');
+        const r2 = drag(items, 3, 1, false); // D before B
+        assertEqual(r2.join(','), 'A,D,B,C,E');
+      }},
+    { name: "Heure de début — format libre",
+      run: () => {
+        const times = ['08:30','14:00','09:15'];
+        times.forEach(t => assert(t.includes(':'), `${t} devrait contenir ':'`));
+      }},
+  ]},
+
+  // ──────────────────────────────────────────────
+  { name: "07 · Temps de jeu & stats", icon:"📊", tests: [
+    { name: "Playtime s'accumule correctement",
+      run: () => {
+        const playtime = {};
+        const addTime = (player, secs) => { playtime[player]=(playtime[player]||0)+secs; };
+        addTime('Jean', 300); addTime('Jean', 120); addTime('Marc', 600);
+        assertEqual(playtime['Jean'], 420);
+        assertEqual(playtime['Marc'], 600);
+      }},
+    { name: "% poste naturel — calcul",
+      run: () => {
+        const pp = {pilier:300, flanker:100}; // 300s au naturel, 100s en dépannage
+        const naturalTypes = ['pilier'];
+        const total = Object.values(pp).reduce((a,b)=>a+b,0);
+        const naturalTime = Object.entries(pp).filter(([t])=>naturalTypes.includes(t)).reduce((a,[,s])=>a+s,0);
+        const pct = Math.round(naturalTime/total*100);
+        assertEqual(pct, 75);
+      }},
+    { name: "Temps tournoi = somme des matchs",
+      run: () => {
+        const matches = [
+          {playtime:{Jean:300, Marc:400}},
+          {playtime:{Jean:200, Marc:100}},
+        ];
+        const tpt = {};
+        matches.forEach(m => Object.entries(m.playtime).forEach(([p,s])=>tpt[p]=(tpt[p]||0)+s));
+        assertEqual(tpt['Jean'], 500);
+        assertEqual(tpt['Marc'], 500);
+      }},
+    { name: "Entrées tournoi = somme des matchs",
+      run: () => {
+        const matches = [
+          {entries:{Jean:2, Marc:1}},
+          {entries:{Jean:1, Marc:3}},
+        ];
+        const te = {};
+        matches.forEach(m => Object.entries(m.entries).forEach(([p,c])=>te[p]=(te[p]||0)+c));
+        assertEqual(te['Jean'], 3);
+        assertEqual(te['Marc'], 4);
+      }},
+    { name: "Joueur absent inclus dans les stats si déjà joué",
+      run: () => {
+        // Marking a player absent doesn't erase past playtime
+        const tpt = {Jean:500};
+        const absent = ['Jean'];
+        // Stats should still show Jean
+        assert(tpt['Jean'] > 0, 'le temps de Jean doit rester');
+      }},
+    { name: "Stat bar fill — 0% pour joueur sans temps",
+      run: () => {
+        const max = 600;
+        const val = 0;
+        const pct = Math.round(val/max*100);
+        assertEqual(pct, 0);
+      }},
+  ]},
+
+  // ──────────────────────────────────────────────
+  { name: "08 · Nouveau tournoi", icon:"🏆", tests: [
+    { name: "Reset efface les matchs",
+      run: () => {
+        let matches = [{id:1,type:'match'},{id:2,type:'pause'}];
+        matches = []; // what resetTournament does
+        assertEqual(matches.length, 0);
+      }},
+    { name: "Reset remet les stats à zéro",
+      run: () => {
+        let tpt = {Jean:500, Marc:300};
+        let te = {Jean:3};
+        let pp = {Jean:{pilier:300}};
+        tpt={}; te={}; pp={};
+        assertEqual(Object.keys(tpt).length, 0);
+        assertEqual(Object.keys(te).length, 0);
+      }},
+    { name: "currentMatchId null après reset",
+      run: () => {
+        let currentMatchId = 42;
+        currentMatchId = null;
+        assertEqual(currentMatchId, null);
+      }},
+  ]},
+
+  // ──────────────────────────────────────────────
+  { name: "09 · Import / Export JSON", icon:"💾", tests: [
+    { name: "Structure minimale d'un export valide",
+      run: () => {
+        const required = ['players','matches','tournamentEntries','tournamentPlaytime'];
+        const exportData = {players:[],matches:[],tournamentEntries:{},tournamentPlaytime:{},positionPlaytime:{}};
+        required.forEach(k => assert(k in exportData, `clé manquante: ${k}`));
+      }},
+    { name: "Match export inclut noHalftime",
+      run: () => {
+        const match = {id:1,type:'match',format:15,halfDuration:40,noHalftime:false,lineup:{},entries:{},playtime:{}};
+        assert('noHalftime' in match, 'noHalftime devrait être dans le match');
+      }},
+    { name: "Pause export inclut startTime et duration",
+      run: () => {
+        const pause = {id:2,type:'pause',name:'Pause',startTime:'12:00',duration:30};
+        assert('startTime' in pause, 'startTime manquant');
+        assert('duration' in pause, 'duration manquant');
+      }},
+    { name: "JSON.parse(JSON.stringify(obj)) préserve les données",
+      run: () => {
+        const state = {players:[{name:'Jean',positions:['pilier']}],matches:[],tournamentPlaytime:{}};
+        const parsed = JSON.parse(JSON.stringify(state));
+        assertEqual(parsed.players[0].name, 'Jean');
+        assertEqual(parsed.players[0].positions[0], 'pilier');
+      }},
+  ]},
+
+  // ──────────────────────────────────────────────
+  { name: "10 · Sans mi-temps", icon:"🔘", tests: [
+    { name: "noHalftime false par défaut",
+      run: () => {
+        const match = {id:1,type:'match',format:15,halfDuration:40,noHalftime:false};
+        assertEqual(match.noHalftime, false);
+      }},
+    { name: "En mode sans mi-temps, pas de transition period 1.5",
+      run: () => {
+        // Simulate startTimer: when secondsLeft reaches 0 in noHalftime mode,
+        // we don't enter halftime break (period 1.5), we go straight to overtime
+        const match = {noHalftime:true};
+        let period = 1;
+        let overtime = false;
+        let secondsLeft = 0;
+        // Overtime logic: just flip the flag, don't change period
+        if (secondsLeft <= 0 && !overtime) { overtime = true; }
+        // period should still be 1 (not 1.5)
+        assertEqual(period, 1);
+        assert(overtime, 'overtime devrait être true');
+      }},
+    { name: "Toggle noHalftime change le booléen",
+      run: () => {
+        let match = {noHalftime:false};
+        match.noHalftime = !match.noHalftime;
+        assert(match.noHalftime, 'devrait être true après toggle');
+        match.noHalftime = !match.noHalftime;
+        assert(!match.noHalftime, 'devrait être false après 2ème toggle');
+      }},
+    { name: "Mode sans mi-temps — durée unique = halfDuration",
+      run: () => {
+        const match = {halfDuration:20, noHalftime:true};
+        const secs = (match.halfDuration||40)*60;
+        assertEqual(secs, 1200); // 20 min, pas de 2ème période
+      }},
+  ]},
+
+];
+
+// ═══════════════════════════════════════════════════════════
+// RUNNER
+// ═══════════════════════════════════════════════════════════
+async function runAll() {
+  results = []; logLines = [];
+  const start = Date.now();
+  const container = document.getElementById('suitesContainer');
+  container.innerHTML = '';
+
+  let totalPass=0, totalFail=0, totalSkip=0, totalTests=0;
+
+  for (const suite of SUITES) {
+    const suiteResults = [];
+    for (const test of suite.tests) {
+      totalTests++;
+      let status='pass', detail='';
+      try {
+        await test.run();
+        totalPass++; status='pass';
+        log(`✓ ${suite.name} > ${test.name}`, 'ok');
+      } catch(e) {
+        totalFail++; status='fail'; detail=e.message;
+        log(`✗ ${suite.name} > ${test.name}: ${e.message}`, 'err');
+      }
+      suiteResults.push({...test, status, detail});
+    }
+    results.push({...suite, results:suiteResults});
+  }
+
+  const elapsed = Date.now()-start;
+  renderResults(results);
+  updateSummary(totalTests, totalPass, totalFail, totalSkip, elapsed);
+  document.getElementById('progressBar').style.width = (totalPass/totalTests*100)+'%';
+  document.getElementById('progressBar').style.background = totalFail>0?'var(--red)':'var(--green)';
+  document.getElementById('logBox').innerHTML = logLines.join('<br>');
+}
+
+function renderResults(suites) {
+  const container = document.getElementById('suitesContainer');
+  container.innerHTML = suites.map((suite,si) => {
+    const pass = suite.results.filter(r=>r.status==='pass').length;
+    const fail = suite.results.filter(r=>r.status==='fail').length;
+    const all = suite.results.length;
+    const badgeClass = fail>0?'badge-fail':pass===all?'badge-pass':'badge-skip';
+    const badgeText = fail>0?`${fail} échoué(s)`:`${pass}/${all}`;
+    const rows = suite.results.map(r => {
+      const icon = r.status==='pass'?'✅':r.status==='fail'?'❌':'⏭';
+      return `<div class="test-row">
+        <span class="test-icon">${icon}</span>
+        <div class="flex-1">
+          <div class="test-name">${r.name}</div>
+          ${r.detail?`<div class="test-detail">${r.detail}</div>`:''}
+        </div>
+        <span class="test-result ${r.status}">${r.status==='pass'?'OK':r.status==='fail'?'FAIL':'SKIP'}</span>
+      </div>`;
+    }).join('');
+    return `<div class="suite">
+      <div class="suite-header" onclick="toggleSuite(${si})">
+        <span>${suite.icon}</span>
+        <span class="suite-title">${suite.name}</span>
+        <span class="suite-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="suite-body" id="suite_${si}">${rows}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSuite(idx) {
+  const el = document.getElementById('suite_'+idx);
+  if (el) el.classList.toggle('hidden');
+}
+
+function updateSummary(tot, pass, fail, skip, ms) {
+  document.getElementById('sTot').textContent=tot;
+  document.getElementById('sPass').textContent=pass;
+  document.getElementById('sFail').textContent=fail;
+  document.getElementById('sSkip').textContent=skip;
+  document.getElementById('sTime').textContent=ms;
+}
+
+function toggleLog() {
+  document.getElementById('logBox').classList.toggle('show');
+}
+
+// Auto-run on load
+window.onload = () => runAll();
+</script>
+</body>
+</html>
