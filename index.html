@@ -1767,7 +1767,7 @@ function showSubSuggestion() {
       + '<div><span class="sugg-out">↓ ' + s.out + '</span><span class="sugg-arrow">→</span><span class="sugg-in">↑ ' + s.in + '</span></div>'
       + '<div class="sugg-pos">#' + s.pos.num + ' ' + s.pos.name + natural + '</div>'
       + '</div>'
-      + '<button id="sugg_btn_' + i + '" onclick="applySubSuggestion(' + JSON.stringify(s.in) + ',' + JSON.stringify(s.out) + ',' + s.pos.num + ',' + i + ')" '
+      + '<button id="sugg_btn_' + i + '" onclick="applySubSuggestion(\'' + escapeJs(s.in) + '\',\'' + escapeJs(s.out) + '\',' + s.pos.num + ',' + i + ')" '
       + 'style="background:var(--blue);border:none;color:white;border-radius:8px;padding:6px 10px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;flex-shrink:0">'
       + '✓ Valider</button>'
       + '</div>';
@@ -1899,6 +1899,9 @@ if (state.players.length===0) {
   ];
   renderPlayersPreview();
 }
+// Open / close the modal — defined here to ensure availability
+function openSubModal()  { document.getElementById('subSuggModal').style.display='flex'; }
+function closeSubModal() { document.getElementById('subSuggModal').style.display='none'; }
 </script>
 <!-- ════════════ SUB SUGGESTION MODAL ════════════ -->
 <div id="subSuggModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:flex-end">
@@ -1907,10 +1910,5 @@ if (state.players.length===0) {
   </div>
 </div>
 
-<script>
-// Open / close the modal
-function openSubModal()  { document.getElementById('subSuggModal').style.display='flex'; }
-function closeSubModal() { document.getElementById('subSuggModal').style.display='none'; }
-</script>
 </body>
 </html>
