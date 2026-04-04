@@ -207,6 +207,32 @@ label{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.78re
 .sugg-out{color:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:700}
 .sugg-in{color:var(--green);font-family:'Barlow Condensed',sans-serif;font-weight:700}
 .sugg-pos{font-size:.68rem;color:var(--muted);margin-top:1px}
+
+/* ── VOICE ── */
+.voice-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:13px;border-radius:12px;border:2px solid var(--border);background:var(--bg2);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;touch-action:manipulation;margin-bottom:12px}
+.voice-btn:active{transform:scale(.97)}
+.voice-btn.listening{border-color:var(--red);background:rgba(231,76,60,.08);color:var(--red);animation:voicePulse 1s infinite}
+@keyframes voicePulse{0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,.3)}50%{box-shadow:0 0 0 8px rgba(231,76,60,.0)}}
+.voice-dot{width:10px;height:10px;border-radius:50%;background:currentColor;flex-shrink:0}
+.voice-btn.listening .voice-dot{animation:dotBlink .6s infinite}
+@keyframes dotBlink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* Voice feedback toast */
+#voiceToast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:400;min-width:280px;max-width:90vw;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 18px;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none;animation:toastIn .2s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+#voiceToast.show{display:block}
+.vt-heard{font-size:.72rem;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.vt-text{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.1rem;color:var(--white);margin-bottom:8px}
+.vt-action{font-size:.82rem;color:var(--accent2);margin-bottom:10px;line-height:1.4}
+.vt-btns{display:flex;gap:8px}
+.vt-confirm{flex:1;padding:9px;border-radius:8px;border:none;background:var(--green);color:white;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.88rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.vt-cancel{padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.88rem;cursor:pointer}
+.vt-error{color:var(--red);font-size:.85rem;padding:4px 0}
+
+/* Help panel */
+.voice-help{background:rgba(52,152,219,.06);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:12px;margin-bottom:12px;font-size:.78rem;line-height:1.7;color:var(--muted)}
+.voice-help strong{color:var(--text)}
+.voice-cmd{display:inline-block;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:1px 7px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.78rem;color:var(--accent2);margin:1px}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -1412,6 +1438,9 @@ function renderBench() {
 
   let html = '';
 
+  // Voice button
+  html += renderVoiceButton();
+
   // Instruction banner
   if (benchSelectedPlayer) {
     html += `<div class="sub-instruction">
@@ -1873,6 +1902,351 @@ function rescheduleSubSuggestion() {
   scheduleSubSuggestion();
 }
 
+
+// ════════════════════════════════════════════════
+// VOICE RECOGNITION MODULE
+// ════════════════════════════════════════════════
+
+let voiceRecognition = null;
+let voiceListening = false;
+let voicePendingAction = null; // {type, params, description}
+
+// ── Levenshtein distance (fuzzy name matching) ──
+function levenshtein(a, b) {
+  const m=a.length, n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+// Find best matching player name from a spoken string
+function findPlayerByVoice(spoken) {
+  if (!spoken) return null;
+  const spokenNorm = spoken.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  let best = null, bestScore = Infinity;
+  state.players.forEach(p => {
+    const nameNorm = p.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    // Check full name and last name only
+    const candidates = [nameNorm, nameNorm.split(' ').slice(-1)[0], nameNorm.split(' ')[0]];
+    candidates.forEach(c => {
+      const d = levenshtein(spokenNorm, c);
+      const ratio = d / Math.max(spokenNorm.length, c.length);
+      // Also check if spoken contains the name or vice versa
+      const contains = spokenNorm.includes(c) || c.includes(spokenNorm);
+      const score = contains ? 0 : ratio;
+      if (score < bestScore) { bestScore=score; best=p.name; }
+    });
+  });
+  // Accept if distance ratio < 0.45 or direct containment
+  return bestScore < 0.45 ? best : null;
+}
+
+// ── Command parser ──
+function parseVoiceCommand(transcript) {
+  const t = transcript.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const match = getCurrentMatch();
+
+  // ── Chrono commands ──
+  if (/\b(mi.?temps|halftime|sifflet|coup de sifflet)\b/.test(t)) {
+    if (timer.running || timer.period===1.5) {
+      return { type:'halftime', description:'🔔 Siffler la mi-temps / fin de mi-temps' };
+    }
+  }
+  if (/\b(fin de match|end of match|coup de sifflet final|fin du match)\b/.test(t)) {
+    return { type:'endmatch', description:'🏁 Fin du match' };
+  }
+  if (/\b(start|d[eé]marre|lance|commence)\b/.test(t) && !/entrer|sortir/.test(t)) {
+    return { type:'start', description:'▶ Démarrer le chrono' };
+  }
+  if (/\b(pause|stop|arr[eê]te)\b/.test(t) && !/temps/.test(t)) {
+    return { type:'pause', description:'⏸ Mettre en pause' };
+  }
+
+  // ── Substitution: "faire entrer [nom]" ──
+  const enterMatch = t.match(/(?:faire?\s+)?entrer?\s+(.+)/);
+  if (enterMatch) {
+    const playerName = findPlayerByVoice(enterMatch[1].trim());
+    if (playerName && isAvailable(playerName)) {
+      const positions = match ? getPositions(match) : [];
+      const onField = new Set(positions.map(p=>match.lineup[p.num]).filter(Boolean));
+      if (!onField.has(playerName)) {
+        return { type:'enter', params:{playerName}, description:`🔄 Faire entrer <strong>${playerName}</strong>` };
+      } else {
+        return { type:'error', description:`${playerName} est déjà sur le terrain` };
+      }
+    }
+    return { type:'error', description:`Joueur non reconnu : "${enterMatch[1]}"` };
+  }
+
+  // ── Substitution: "faire sortir [nom]" ──
+  const exitMatch = t.match(/(?:faire?\s+)?sortir?\s+(.+)/);
+  if (exitMatch) {
+    const playerName = findPlayerByVoice(exitMatch[1].trim());
+    if (playerName) {
+      const positions = match ? getPositions(match) : [];
+      const onField = new Set(positions.map(p=>match.lineup[p.num]).filter(Boolean));
+      if (onField.has(playerName)) {
+        // Find which position
+        const pos = positions.find(p=>match.lineup[p.num]===playerName);
+        return { type:'remove', params:{playerName, posNum:pos.num}, description:`⬇️ Faire sortir <strong>${playerName}</strong>` };
+      } else {
+        return { type:'error', description:`${playerName} n'est pas sur le terrain` };
+      }
+    }
+    return { type:'error', description:`Joueur non reconnu : "${exitMatch[1]}"` };
+  }
+
+  // ── Swap: "swap [nom1] et [nom2]" or "échanger [nom1] et [nom2]" ──
+  const swapMatch = t.match(/(?:swap|[eé]changer?|inverser?)\s+(.+?)\s+(?:et|avec|par)\s+(.+)/);
+  if (swapMatch) {
+    const p1 = findPlayerByVoice(swapMatch[1].trim());
+    const p2 = findPlayerByVoice(swapMatch[2].trim());
+    if (p1 && p2) {
+      const positions = match ? getPositions(match) : [];
+      const pos1 = positions.find(p=>match.lineup[p.num]===p1);
+      const pos2 = positions.find(p=>match.lineup[p.num]===p2);
+      if (pos1 && pos2) {
+        return { type:'swap', params:{p1, p2, pos1:pos1.num, pos2:pos2.num}, description:`🔀 Swap <strong>${p1}</strong> ↔ <strong>${p2}</strong>` };
+      }
+      return { type:'error', description:`L'un des joueurs n'est pas sur le terrain` };
+    }
+    return { type:'error', description:`Joueurs non reconnus` };
+  }
+
+  // ── Change: "[nom1] remplace [nom2]" ──
+  const replaceMatch = t.match(/(.+?)\s+remplace\s+(.+)/);
+  if (replaceMatch) {
+    const inPlayer = findPlayerByVoice(replaceMatch[1].trim());
+    const outPlayer = findPlayerByVoice(replaceMatch[2].trim());
+    if (inPlayer && outPlayer) {
+      const positions = match ? getPositions(match) : [];
+      const posEntry = positions.find(p=>match.lineup[p.num]===outPlayer);
+      if (posEntry && isAvailable(inPlayer)) {
+        return { type:'substitute', params:{inPlayer, outPlayer, posNum:posEntry.num}, description:`🔄 <strong>${inPlayer}</strong> remplace <strong>${outPlayer}</strong> au poste #${posEntry.num}` };
+      }
+      return { type:'error', description:`Substitution impossible (vérifiez les postes)` };
+    }
+  }
+
+  return { type:'unknown', description:`Commande non reconnue. Essayez : "faire entrer [nom]", "[nom] remplace [nom]", "mi-temps"` };
+}
+
+// ── Execute a confirmed voice action ──
+function voiceExecute(action) {
+  const match = getCurrentMatch();
+  if (!action || !match) return;
+  const positions = getPositions(match);
+
+  switch(action.type) {
+    case 'halftime':
+      markHalftime(); break;
+    case 'endmatch':
+      endMatch(); break;
+    case 'start':
+      startTimer(); break;
+    case 'pause':
+      pauseTimer(); break;
+
+    case 'enter': {
+      // Select this player in bench mode (user still picks the position manually — or auto-assign to first compatible vacant slot)
+      const { playerName } = action.params;
+      const pd = state.players.find(p=>p.name===playerName);
+      const compatTypes = pd ? pd.positions : [];
+      // Find first vacant compatible position
+      let targetPos = positions.find(p => !match.lineup[p.num] && compatTypes.includes(p.type));
+      // If none vacant + compatible, find first vacant any
+      if (!targetPos) targetPos = positions.find(p => !match.lineup[p.num]);
+      if (targetPos) {
+        const posType = targetPos.type;
+        const prevPlayer = match.lineup[targetPos.num];
+        if (prevPlayer) onPlayerRemoved(prevPlayer, posType);
+        match.entries[playerName]=(match.entries[playerName]||0)+1;
+        state.tournamentEntries[playerName]=(state.tournamentEntries[playerName]||0)+1;
+        match.lineup[targetPos.num]=playerName;
+        match.lastChangeTs[targetPos.num]=Date.now();
+        onPlayerPlaced(playerName);
+        save(); renderCompo(); renderBench();
+        voiceToast(`✅ ${playerName} en jeu au poste #${targetPos.num} (${targetPos.name})`, false);
+      } else {
+        voiceToast(`⚠️ Aucun poste vacant pour ${playerName}`, false);
+      }
+      break;
+    }
+
+    case 'remove': {
+      const { playerName, posNum } = action.params;
+      const posType = positions.find(p=>p.num===posNum)?.type;
+      onPlayerRemoved(playerName, posType);
+      match.lineup[posNum] = null;
+      match.lastChangeTs[posNum] = Date.now();
+      save(); renderCompo(); renderBench();
+      voiceToast(`✅ ${playerName} sorti`, false);
+      break;
+    }
+
+    case 'substitute': {
+      const { inPlayer, outPlayer, posNum } = action.params;
+      const posType = positions.find(p=>p.num===posNum)?.type;
+      onPlayerRemoved(outPlayer, posType);
+      match.entries[inPlayer]=(match.entries[inPlayer]||0)+1;
+      state.tournamentEntries[inPlayer]=(state.tournamentEntries[inPlayer]||0)+1;
+      match.lineup[posNum]=inPlayer;
+      match.lastChangeTs[posNum]=Date.now();
+      onPlayerPlaced(inPlayer);
+      save(); renderCompo(); renderBench();
+      voiceToast(`✅ ${inPlayer} remplace ${outPlayer}`, false);
+      break;
+    }
+
+    case 'swap': {
+      const { p1, p2, pos1, pos2 } = action.params;
+      const posType1 = positions.find(p=>p.num===pos1)?.type;
+      const posType2 = positions.find(p=>p.num===pos2)?.type;
+      onPlayerRemoved(p1, posType1);
+      onPlayerRemoved(p2, posType2);
+      match.lineup[pos1]=p2; match.lineup[pos2]=p1;
+      match.lastChangeTs[pos1]=Date.now(); match.lastChangeTs[pos2]=Date.now();
+      onPlayerPlaced(p2); onPlayerPlaced(p1);
+      save(); renderCompo(); renderBench();
+      voiceToast(`✅ Swap effectué : ${p1} ↔ ${p2}`, false);
+      break;
+    }
+  }
+}
+
+// ── Toast helpers ──
+function voiceToast(msg, withConfirm=true, action=null) {
+  const toast = document.getElementById('voiceToast');
+  if (!toast) return;
+  if (withConfirm) {
+    document.getElementById('vtText').textContent = '';
+    document.getElementById('vtAction').innerHTML = msg;
+    document.getElementById('vtConfirm').style.display = 'block';
+    voicePendingAction = action;
+  } else {
+    document.getElementById('vtText').textContent = '';
+    document.getElementById('vtAction').innerHTML = msg;
+    document.getElementById('vtConfirm').style.display = 'none';
+    voicePendingAction = null;
+    setTimeout(voiceDismiss, 2500);
+  }
+  document.querySelector('#voiceToast .vt-heard').textContent = withConfirm ? '🎤 Entendu — confirmer ?' : '🎤 Action effectuée';
+  toast.classList.add('show');
+}
+
+function voiceConfirm() {
+  if (voicePendingAction) voiceExecute(voicePendingAction);
+  voiceDismiss();
+}
+
+function voiceDismiss() {
+  const toast = document.getElementById('voiceToast');
+  if (toast) toast.classList.remove('show');
+  voicePendingAction = null;
+}
+
+// ── Recognition engine ──
+function initVoiceRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+  const rec = new SpeechRecognition();
+  rec.lang = 'fr-FR';
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.maxAlternatives = 3;
+
+  rec.onresult = (event) => {
+    const transcripts = Array.from(event.results[0]).map(r=>r.transcript);
+    let parsed = null;
+    for (const t of transcripts) {
+      const p = parseVoiceCommand(t);
+      if (p.type !== 'unknown' && p.type !== 'error') { parsed=p; break; }
+      if (!parsed) parsed=p; // keep first even if unknown
+    }
+    const rawText = transcripts[0];
+    if (parsed.type === 'error' || parsed.type === 'unknown') {
+      voiceToast(`<span style="color:var(--red)">${parsed.description}</span><br><span style="font-size:.72rem;color:var(--muted)">Entendu : "${rawText}"</span>`, false);
+    } else {
+      // Show confirmation toast with the raw transcript + interpreted action
+      document.getElementById('vtText').textContent = `"${rawText}"`;
+      document.getElementById('vtAction').innerHTML = parsed.description;
+      document.getElementById('vtConfirm').style.display = 'block';
+      document.querySelector('#voiceToast .vt-heard').textContent = '🎤 Entendu — confirmer ?';
+      document.getElementById('voiceToast').classList.add('show');
+      voicePendingAction = parsed;
+    }
+    stopVoice();
+  };
+
+  rec.onerror = (e) => {
+    const msgs = {
+      'not-allowed':'Accès micro refusé. Autorisez le micro dans les paramètres du navigateur.',
+      'no-speech':'Aucun son détecté.',
+      'network':'Erreur réseau.',
+      'aborted':'Écoute annulée.',
+    };
+    voiceToast(`<span style="color:var(--red)">${msgs[e.error]||('Erreur: '+e.error)}</span>`, false);
+    stopVoice();
+  };
+
+  rec.onend = () => { if (voiceListening) stopVoice(); };
+  return rec;
+}
+
+function startVoice() {
+  if (voiceListening) { stopVoice(); return; }
+  voiceDismiss();
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    voiceToast('<span style="color:var(--red)">Reconnaissance vocale non supportée sur ce navigateur.<br>Utilisez Chrome sur Android.</span>', false);
+    return;
+  }
+  voiceRecognition = initVoiceRecognition();
+  if (!voiceRecognition) return;
+  try {
+    voiceRecognition.start();
+    voiceListening = true;
+    updateVoiceButtons();
+  } catch(e) { voiceToast('<span style="color:var(--red)">Impossible de démarrer le micro.</span>', false); }
+}
+
+function stopVoice() {
+  voiceListening = false;
+  if (voiceRecognition) { try { voiceRecognition.stop(); } catch(e){} voiceRecognition=null; }
+  updateVoiceButtons();
+}
+
+function updateVoiceButtons() {
+  document.querySelectorAll('.voice-btn').forEach(btn => {
+    btn.classList.toggle('listening', voiceListening);
+    const dot = btn.querySelector('.voice-dot');
+    const label = btn.querySelector('.voice-label');
+    if (dot) dot.style.display = voiceListening ? 'block' : 'none';
+    if (label) label.textContent = voiceListening ? 'Écoute en cours...' : '🎤 Commande vocale';
+  });
+}
+
+function renderVoiceButton() {
+  const supported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  if (!supported) return '';
+  return `<button class="voice-btn${voiceListening?' listening':''}" onclick="startVoice()">
+    <span class="voice-dot" style="display:${voiceListening?'block':'none'}"></span>
+    <span class="voice-label">${voiceListening?'Écoute en cours...':'🎤 Commande vocale'}</span>
+  </button>
+  <div class="voice-help">
+    <strong>Commandes vocales :</strong><br>
+    <span class="voice-cmd">"faire entrer [nom]"</span>
+    <span class="voice-cmd">"faire sortir [nom]"</span>
+    <span class="voice-cmd">"[nom] remplace [nom]"</span>
+    <span class="voice-cmd">"swap [nom] et [nom]"</span><br>
+    <span class="voice-cmd">"mi-temps"</span>
+    <span class="voice-cmd">"fin de match"</span>
+    <span class="voice-cmd">"start"</span>
+    <span class="voice-cmd">"pause"</span>
+  </div>`;
+}
+
 // ════════════════════════════════════════════════
 // IMPORT / EXPORT
 // ════════════════════════════════════════════════
@@ -1938,6 +2312,17 @@ if (state.players.length===0) {
 function openSubModal()  { document.getElementById('subSuggModal').style.display='flex'; }
 function closeSubModal() { document.getElementById('subSuggModal').style.display='none'; }
 </script>
+<!-- ════════════ VOICE TOAST ════════════ -->
+<div id="voiceToast">
+  <div class="vt-heard">🎤 Entendu</div>
+  <div class="vt-text" id="vtText"></div>
+  <div class="vt-action" id="vtAction"></div>
+  <div class="vt-btns">
+    <button class="vt-confirm" id="vtConfirm" onclick="voiceConfirm()">✓ Confirmer</button>
+    <button class="vt-cancel" onclick="voiceDismiss()">✕</button>
+  </div>
+</div>
+
 <!-- ════════════ SUB SUGGESTION MODAL ════════════ -->
 <div id="subSuggModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:flex-end">
   <div style="background:var(--bg2);border-radius:20px 20px 0 0;border-top:2px solid var(--blue);padding:16px;width:100%;max-height:75vh;overflow-y:auto;animation:slideUp .25s ease">
