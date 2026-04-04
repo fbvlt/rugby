@@ -1117,12 +1117,15 @@ function renderCompo() {
         <div style="font-size:.7rem;color:var(--muted)">postes</div>
       </div>
     </div>
-    <div style="margin-top:10px;display:flex;gap:8px">
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-outline flex-1" style="font-size:.8rem;padding:8px" onclick="toggleSwapMode()">
-        ${swapMode ? (swapFirstPos!==null ? '✕ Annuler' : '✕ Quitter swap') : '🔀 Swap joueurs'}
+        ${swapMode ? (swapFirstPos!==null ? '✕ Annuler' : '✕ Quitter swap') : '🔀 Swap'}
       </button>
       <button class="btn btn-primary flex-1" style="font-size:.8rem;padding:8px" onclick="autoFillLineup()">
-        ⚡ Sélection auto
+        ⚡ Auto
+      </button>
+      <button class="${voiceListening?'btn btn-danger':'btn btn-outline'} flex-1" style="font-size:.8rem;padding:8px" onclick="startVoice()">
+        ${voiceListening?'🔴 Écoute…':'🎤 Vocal'}
       </button>
     </div>
   </div>`;
@@ -1911,125 +1914,199 @@ let voiceRecognition = null;
 let voiceListening = false;
 let voicePendingAction = null; // {type, params, description}
 
-// ── Levenshtein distance (fuzzy name matching) ──
+// ── Text normalization ──
+function voiceNorm(s) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // strip accents
+    .replace(/[-']/g,' ')   // tiret/apostrophe → espace
+    .replace(/\s+/g,' ').trim();
+}
+
+// ── Levenshtein on short strings ──
 function levenshtein(a, b) {
   const m=a.length, n=b.length;
+  if (m===0) return n; if (n===0) return m;
   const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
   for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
     dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
   return dp[m][n];
 }
 
-// Find best matching player name from a spoken string
-function findPlayerByVoice(spoken) {
-  if (!spoken) return null;
-  const spokenNorm = spoken.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  let best = null, bestScore = Infinity;
-  state.players.forEach(p => {
-    const nameNorm = p.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    // Check full name and last name only
-    const candidates = [nameNorm, nameNorm.split(' ').slice(-1)[0], nameNorm.split(' ')[0]];
-    candidates.forEach(c => {
-      const d = levenshtein(spokenNorm, c);
-      const ratio = d / Math.max(spokenNorm.length, c.length);
-      // Also check if spoken contains the name or vice versa
-      const contains = spokenNorm.includes(c) || c.includes(spokenNorm);
-      const score = contains ? 0 : ratio;
-      if (score < bestScore) { bestScore=score; best=p.name; }
+// Score how well a spoken fragment matches a player name.
+// Strategy: split both into tokens, find best token-to-token alignment.
+// Returns 0 = perfect match, 1 = no match.
+function scoreNameMatch(spoken, playerName) {
+  const spToks = voiceNorm(spoken).split(' ').filter(Boolean);
+  const nmToks = voiceNorm(playerName).split(' ').filter(Boolean);
+  if (!spToks.length || !nmToks.length) return 1;
+
+  // 1. Exact full-name match
+  if (voiceNorm(spoken) === voiceNorm(playerName)) return 0;
+
+  // 2. Spoken is a substring of name or vice versa (after norm)
+  const spFull = spToks.join(' '), nmFull = nmToks.join(' ');
+  if (nmFull.includes(spFull) || spFull.includes(nmFull)) return 0.05;
+
+  // 3. Token-level matching: for each spoken token, find best matching name token
+  let totalScore = 0;
+  let matchedTokens = 0;
+  spToks.forEach(spTok => {
+    let best = 1;
+    nmToks.forEach(nmTok => {
+      // Exact token match
+      if (spTok === nmTok) { best = 0; return; }
+      // Contains
+      if (nmTok.includes(spTok) || spTok.includes(nmTok)) { best = Math.min(best, 0.1); return; }
+      // Levenshtein ratio — only for tokens of similar length
+      const maxLen = Math.max(spTok.length, nmTok.length);
+      if (maxLen < 3) return; // skip very short tokens
+      const d = levenshtein(spTok, nmTok);
+      const ratio = d / maxLen;
+      if (ratio < 0.5) best = Math.min(best, ratio + 0.1);
     });
+    if (best < 0.6) { totalScore += best; matchedTokens++; }
   });
-  // Accept if distance ratio < 0.45 or direct containment
-  return bestScore < 0.45 ? best : null;
+
+  // Need at least one token to have matched reasonably
+  if (matchedTokens === 0) return 1;
+
+  // Bonus: more name tokens matched = better
+  const coverage = matchedTokens / nmToks.length;
+  return (totalScore / matchedTokens) * (1 - coverage * 0.3);
 }
 
-// ── Command parser ──
-function parseVoiceCommand(transcript) {
-  const t = transcript.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  const match = getCurrentMatch();
+// Find best matching player name from a spoken string fragment.
+// Returns {name, score} or null.
+function findPlayerByVoice(spoken, threshold=0.55) {
+  if (!spoken || !state.players.length) return null;
+  let best = null, bestScore = threshold;
+  state.players.forEach(p => {
+    const score = scoreNameMatch(spoken, p.name);
+    if (score < bestScore) { bestScore = score; best = p.name; }
+  });
+  return best;
+}
 
-  // ── Chrono commands ──
-  if (/\b(mi.?temps|halftime|sifflet|coup de sifflet)\b/.test(t)) {
-    if (timer.running || timer.period===1.5) {
-      return { type:'halftime', description:'🔔 Siffler la mi-temps / fin de mi-temps' };
-    }
+// ── Command parser — accepts a list of transcript alternatives ──
+function parseVoiceCommand(transcripts) {
+  if (typeof transcripts === 'string') transcripts = [transcripts];
+  const currentMatch = getCurrentMatch();
+
+  // Try each alternative; return first successful parse
+  for (const raw of transcripts) {
+    const t = voiceNorm(raw);
+    const result = _tryParseCommand(t, raw, currentMatch);
+    if (result.type !== 'unknown') return result;
   }
-  if (/\b(fin de match|end of match|coup de sifflet final|fin du match)\b/.test(t)) {
+  // All failed — return unknown with all alternatives shown
+  return {
+    type: 'unknown',
+    description: `Commande non reconnue.<br><small style="color:var(--muted)">Essayez : "entrer [nom]", "[nom] remplace [nom]", "swap [nom] et [nom]", "mi-temps"</small><br><small>Entendu : "${transcripts[0]}"</small>`
+  };
+}
+
+function _tryParseCommand(t, raw, match) {
+  // ── Chrono commands (tested first, no name needed) ──
+  if (/\b(mi.?temps|halftime|sifflet|coup de sifflet)\b/.test(t)) {
+    return { type:'halftime', description:'🔔 Siffler la mi-temps' };
+  }
+  if (/\b(fin du? match|end of match|coup de sifflet final|match termin)\b/.test(t)) {
     return { type:'endmatch', description:'🏁 Fin du match' };
   }
-  if (/\b(start|d[eé]marre|lance|commence)\b/.test(t) && !/entrer|sortir/.test(t)) {
+  if (/\b(demarre|lance le chrono|start|reprend)\b/.test(t) && !/entrer|sortir|remplace/.test(t)) {
     return { type:'start', description:'▶ Démarrer le chrono' };
   }
-  if (/\b(pause|stop|arr[eê]te)\b/.test(t) && !/temps/.test(t)) {
-    return { type:'pause', description:'⏸ Mettre en pause' };
+  if (/\b(pause|stop chrono|arrete le chrono)\b/.test(t)) {
+    return { type:'pause', description:'⏸ Pause chrono' };
   }
 
-  // ── Substitution: "faire entrer [nom]" ──
-  const enterMatch = t.match(/(?:faire?\s+)?entrer?\s+(.+)/);
-  if (enterMatch) {
-    const playerName = findPlayerByVoice(enterMatch[1].trim());
-    if (playerName && isAvailable(playerName)) {
-      const positions = match ? getPositions(match) : [];
-      const onField = new Set(positions.map(p=>match.lineup[p.num]).filter(Boolean));
-      if (!onField.has(playerName)) {
-        return { type:'enter', params:{playerName}, description:`🔄 Faire entrer <strong>${playerName}</strong>` };
-      } else {
-        return { type:'error', description:`${playerName} est déjà sur le terrain` };
+  if (!match) return { type:'unknown', description:'' };
+  const positions = getPositions(match);
+  const onField = new Set(positions.map(p=>match.lineup[p.num]).filter(Boolean));
+
+  // ── "[nom] remplace [nom]" — check before enter/sortir ──
+  const replaceRe = /^(.+?)\s+(?:remplace|pour|a la place de|prend la place de)\s+(.+)$/;
+  const replaceM = t.match(replaceRe);
+  if (replaceM) {
+    const inPlayer  = findPlayerByVoice(replaceM[1].trim());
+    const outPlayer = findPlayerByVoice(replaceM[2].trim());
+    if (inPlayer && outPlayer && inPlayer !== outPlayer) {
+      const posEntry = positions.find(p=>match.lineup[p.num]===outPlayer);
+      if (posEntry && isAvailable(inPlayer) && !onField.has(inPlayer)) {
+        return { type:'substitute', params:{inPlayer, outPlayer, posNum:posEntry.num},
+          description:`🔄 <strong>${inPlayer}</strong> remplace <strong>${outPlayer}</strong> (#${posEntry.num} ${posEntry.name})` };
       }
+      if (!posEntry) return { type:'error', description:`${outPlayer} n'est pas sur le terrain` };
     }
-    return { type:'error', description:`Joueur non reconnu : "${enterMatch[1]}"` };
   }
 
-  // ── Substitution: "faire sortir [nom]" ──
-  const exitMatch = t.match(/(?:faire?\s+)?sortir?\s+(.+)/);
-  if (exitMatch) {
-    const playerName = findPlayerByVoice(exitMatch[1].trim());
-    if (playerName) {
-      const positions = match ? getPositions(match) : [];
-      const onField = new Set(positions.map(p=>match.lineup[p.num]).filter(Boolean));
-      if (onField.has(playerName)) {
-        // Find which position
-        const pos = positions.find(p=>match.lineup[p.num]===playerName);
-        return { type:'remove', params:{playerName, posNum:pos.num}, description:`⬇️ Faire sortir <strong>${playerName}</strong>` };
-      } else {
-        return { type:'error', description:`${playerName} n'est pas sur le terrain` };
-      }
-    }
-    return { type:'error', description:`Joueur non reconnu : "${exitMatch[1]}"` };
-  }
-
-  // ── Swap: "swap [nom1] et [nom2]" or "échanger [nom1] et [nom2]" ──
-  const swapMatch = t.match(/(?:swap|[eé]changer?|inverser?)\s+(.+?)\s+(?:et|avec|par)\s+(.+)/);
-  if (swapMatch) {
-    const p1 = findPlayerByVoice(swapMatch[1].trim());
-    const p2 = findPlayerByVoice(swapMatch[2].trim());
-    if (p1 && p2) {
-      const positions = match ? getPositions(match) : [];
+  // ── Swap ──
+  const swapRe = /(?:swap|echange|inverse|permute)\s+(.+?)\s+(?:et|avec|par)\s+(.+)/;
+  const swapM = t.match(swapRe);
+  if (swapM) {
+    const p1 = findPlayerByVoice(swapM[1].trim());
+    const p2 = findPlayerByVoice(swapM[2].trim());
+    if (p1 && p2 && p1 !== p2) {
       const pos1 = positions.find(p=>match.lineup[p.num]===p1);
       const pos2 = positions.find(p=>match.lineup[p.num]===p2);
       if (pos1 && pos2) {
-        return { type:'swap', params:{p1, p2, pos1:pos1.num, pos2:pos2.num}, description:`🔀 Swap <strong>${p1}</strong> ↔ <strong>${p2}</strong>` };
+        return { type:'swap', params:{p1, p2, pos1:pos1.num, pos2:pos2.num},
+          description:`🔀 Swap <strong>${p1}</strong> ↔ <strong>${p2}</strong>` };
       }
-      return { type:'error', description:`L'un des joueurs n'est pas sur le terrain` };
-    }
-    return { type:'error', description:`Joueurs non reconnus` };
-  }
-
-  // ── Change: "[nom1] remplace [nom2]" ──
-  const replaceMatch = t.match(/(.+?)\s+remplace\s+(.+)/);
-  if (replaceMatch) {
-    const inPlayer = findPlayerByVoice(replaceMatch[1].trim());
-    const outPlayer = findPlayerByVoice(replaceMatch[2].trim());
-    if (inPlayer && outPlayer) {
-      const positions = match ? getPositions(match) : [];
-      const posEntry = positions.find(p=>match.lineup[p.num]===outPlayer);
-      if (posEntry && isAvailable(inPlayer)) {
-        return { type:'substitute', params:{inPlayer, outPlayer, posNum:posEntry.num}, description:`🔄 <strong>${inPlayer}</strong> remplace <strong>${outPlayer}</strong> au poste #${posEntry.num}` };
-      }
-      return { type:'error', description:`Substitution impossible (vérifiez les postes)` };
+      const missing = !pos1 ? p1 : p2;
+      return { type:'error', description:`${missing} n'est pas sur le terrain` };
     }
   }
 
-  return { type:'unknown', description:`Commande non reconnue. Essayez : "faire entrer [nom]", "[nom] remplace [nom]", "mi-temps"` };
+  // ── Faire entrer [nom] ──
+  // Flexible: "entrer", "entre", "fait entrer", "rentrer", "faire rentrer", "mets [nom]"
+  const enterRe = /(?:(?:faire?\s+)?(?:r?entre[rz]?|fait\s+(?:r?entre[rz]?))|mets?|aligne)\s+(.+)/;
+  const enterM = t.match(enterRe);
+  if (enterM) {
+    const fragment = enterM[1].trim();
+    const playerName = findPlayerByVoice(fragment);
+    if (playerName && isAvailable(playerName)) {
+      if (!onField.has(playerName)) {
+        return { type:'enter', params:{playerName},
+          description:`🔄 Faire entrer <strong>${playerName}</strong>` };
+      }
+      return { type:'error', description:`${playerName} est déjà sur le terrain` };
+    }
+    // If no name matched by regex, try finding any player name in the full transcript
+    const fallback = findPlayerByVoice(fragment, 0.65);
+    if (fallback && !onField.has(fallback) && isAvailable(fallback)) {
+      return { type:'enter', params:{playerName:fallback},
+        description:`🔄 Faire entrer <strong>${fallback}</strong> <span style="font-size:.7rem;color:var(--muted)">(détection approximative)</span>` };
+    }
+    return { type:'error', description:`Joueur non reconnu dans "${fragment}"` };
+  }
+
+  // ── Faire sortir [nom] ──
+  const exitRe = /(?:faire?\s+)?sortir?\s+(.+)/;
+  const exitM = t.match(exitRe);
+  if (exitM) {
+    const fragment = exitM[1].trim();
+    const playerName = findPlayerByVoice(fragment);
+    if (playerName && onField.has(playerName)) {
+      const pos = positions.find(p=>match.lineup[p.num]===playerName);
+      return { type:'remove', params:{playerName, posNum:pos.num},
+        description:`⬇️ Faire sortir <strong>${playerName}</strong>` };
+    }
+    if (playerName && !onField.has(playerName)) {
+      return { type:'error', description:`${playerName} n'est pas sur le terrain` };
+    }
+    return { type:'error', description:`Joueur non reconnu dans "${fragment}"` };
+  }
+
+  // ── Last resort: single player name in full transcript → "enter" intent ──
+  // (useful when user just says the player's name)
+  const singlePlayer = findPlayerByVoice(t, 0.35);
+  if (singlePlayer && isAvailable(singlePlayer) && !onField.has(singlePlayer)) {
+    return { type:'enter', params:{playerName:singlePlayer},
+      description:`🔄 Faire entrer <strong>${singlePlayer}</strong> <span style="font-size:.7rem;color:var(--muted)">(nom seul)</span>` };
+  }
+
+  return { type:'unknown', description:'' };
 }
 
 // ── Execute a confirmed voice action ──
@@ -2157,18 +2234,18 @@ function initVoiceRecognition() {
   rec.maxAlternatives = 3;
 
   rec.onresult = (event) => {
-    const transcripts = Array.from(event.results[0]).map(r=>r.transcript);
-    let parsed = null;
-    for (const t of transcripts) {
-      const p = parseVoiceCommand(t);
-      if (p.type !== 'unknown' && p.type !== 'error') { parsed=p; break; }
-      if (!parsed) parsed=p; // keep first even if unknown
+    // Collect all alternatives across all results
+    const transcripts = [];
+    for (let ri=0; ri<event.results.length; ri++) {
+      for (let ai=0; ai<event.results[ri].length; ai++) {
+        transcripts.push(event.results[ri][ai].transcript);
+      }
     }
-    const rawText = transcripts[0];
+    const rawText = transcripts[0] || '';
+    const parsed = parseVoiceCommand(transcripts);
     if (parsed.type === 'error' || parsed.type === 'unknown') {
-      voiceToast(`<span style="color:var(--red)">${parsed.description}</span><br><span style="font-size:.72rem;color:var(--muted)">Entendu : "${rawText}"</span>`, false);
+      voiceToast(`<span style="color:var(--red)">${parsed.description || 'Commande non reconnue'}</span>`, false);
     } else {
-      // Show confirmation toast with the raw transcript + interpreted action
       document.getElementById('vtText').textContent = `"${rawText}"`;
       document.getElementById('vtAction').innerHTML = parsed.description;
       document.getElementById('vtConfirm').style.display = 'block';
